@@ -81,4 +81,24 @@ namespace BSPEnums {
 		PHYSLEVEL,
 		DISP_MULTIBLEND
 	};
+
+	enum class SURF : int32_t
+	{
+		LIGHT = 0x1,
+		SKY2D = 0x2,
+		SKY = 0x4,
+		WARP = 0x8,
+		TRANS = 0x10,
+		NOPORTAL = 0x20,
+		TRIGGER = 0x40,
+		NODRAW = 0x80,
+		HINT = 0x100,
+		SKIP = 0x200,
+		NOLIGHT = 0x400,
+		BUMPLIGHT = 0x800,
+		NOSHADOWS = 0x1000,
+		NODECALS = 0x2000,
+		NOCHOP = 0x4000,
+		HITBOX = 0x8000
+	};
 }

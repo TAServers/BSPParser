@@ -23,7 +23,10 @@ bool BSPParser::GetLumpPtr(
 	return true;
 }
 
-bool BSPParser::ParseHeader(const uint8_t* pData, const size_t size, const Header** pHeaderPtr)
+bool BSPParser::ParseHeader(
+	const uint8_t* pData, const size_t size,
+	const Header** pHeaderPtr
+)
 {
 	if (pData == nullptr || pHeaderPtr == nullptr) return false;
 	if (size < sizeof(Header)) return false;
@@ -32,26 +35,110 @@ bool BSPParser::ParseHeader(const uint8_t* pData, const size_t size, const Heade
 	return (*pHeaderPtr)->ident == IDBSPHEADER;
 }
 
-bool BSPParser::ParseFaces(
+template<class LumpDatatype>
+bool ParseLumpBase(
 	const uint8_t* pData, const size_t size,
 	const Header* pHeader,
-	const Face* const** pFaceArray, size_t* pNumFaces
+	const LumpDatatype** pArray, size_t* pLength,
+	const LUMP lump, const size_t max
 )
 {
 	if (
 		pData == nullptr ||
 		pHeader == nullptr ||
-		pFaceArray == nullptr ||
-		pNumFaces == nullptr
+		pArray == nullptr ||
+		pLength == nullptr
 	) return false;
 
-	const uint8_t* pFaceData;
-	if (GetLumpPtr(pData, size, pHeader, LUMP::FACES, &pFaceData) == false)
+	const uint8_t* pLumpData;
+	if (BSPParser::GetLumpPtr(pData, size, pHeader, lump, &pLumpData) == false)
 		return false;
 
-	if (pHeader->lumps[static_cast<size_t>(LUMP::FACES)].length / sizeof(Face) > MAX_MAP_FACES)
-		return false;
+	*pLength = pHeader->lumps[static_cast<size_t>(lump)].length / sizeof(LumpDatatype);
+	if (*pLength > max) return false;
 
-	*pFaceArray = reinterpret_cast<const Face* const*>(pFaceData);
+	*pArray = reinterpret_cast<const LumpDatatype*>(pLumpData);
 	return true;
+}
+
+bool BSPParser::ParseArray(
+	const uint8_t* pData, const size_t size,
+	const Header* pHeader,
+	const int32_t** pArray, size_t* pLength,
+	const LUMP lump, const size_t max
+)
+{
+	return ParseLumpBase(
+		pData, size,
+		pHeader,
+		pArray, pLength,
+		lump, max
+	);
+}
+
+bool BSPParser::ParseArray(
+	const uint8_t* pData, const size_t size,
+	const Header* pHeader,
+	const char** pArray, size_t* pLength,
+	const LUMP lump, const size_t max
+)
+{
+	return ParseLumpBase(
+		pData, size,
+		pHeader,
+		pArray, pLength,
+		lump, max
+	);
+}
+
+bool BSPParser::ParseLump(
+	const uint8_t* pData, const size_t size,
+	const Header* pHeader,
+	const Edge** pArray, size_t* pLength
+) {
+	return ParseLumpBase(
+		pData, size,
+		pHeader,
+		pArray, pLength,
+		LUMP::EDGES, MAX_MAP_EDGES
+	);
+}
+
+bool BSPParser::ParseLump(
+	const uint8_t* pData, const size_t size,
+	const Header* pHeader,
+	const Face** pArray, size_t* pLength
+) {
+	return ParseLumpBase(
+		pData, size,
+		pHeader,
+		pArray, pLength,
+		LUMP::FACES, MAX_MAP_FACES
+	);
+}
+
+bool BSPParser::ParseLump(
+	const uint8_t* pData, const size_t size,
+	const Header* pHeader,
+	const TexInfo** pArray, size_t* pLength
+) {
+	return ParseLumpBase(
+		pData, size,
+		pHeader,
+		pArray, pLength,
+		LUMP::TEXINFO, MAX_MAP_TEXINFO
+	);
+}
+
+bool BSPParser::ParseLump(
+	const uint8_t* pData, const size_t size,
+	const Header* pHeader,
+	const TexData** pArray, size_t* pLength
+) {
+	return ParseLumpBase(
+		pData, size,
+		pHeader,
+		pArray, pLength,
+		LUMP::TEXDATA, MAX_MAP_TEXDATA
+	);
 }
