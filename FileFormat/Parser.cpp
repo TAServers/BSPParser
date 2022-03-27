@@ -64,6 +64,21 @@ bool ParseLumpBase(
 bool BSPParser::ParseArray(
 	const uint8_t* pData, const size_t size,
 	const Header* pHeader,
+	const char** pArray, size_t* pLength,
+	const LUMP lump, const size_t max
+)
+{
+	return ParseLumpBase(
+		pData, size,
+		pHeader,
+		pArray, pLength,
+		lump, max
+	);
+}
+
+bool BSPParser::ParseArray(
+	const uint8_t* pData, const size_t size,
+	const Header* pHeader,
 	const int32_t** pArray, size_t* pLength,
 	const LUMP lump, const size_t max
 )
@@ -79,7 +94,7 @@ bool BSPParser::ParseArray(
 bool BSPParser::ParseArray(
 	const uint8_t* pData, const size_t size,
 	const Header* pHeader,
-	const char** pArray, size_t* pLength,
+	const Vector** pArray, size_t* pLength,
 	const LUMP lump, const size_t max
 )
 {
@@ -88,6 +103,19 @@ bool BSPParser::ParseArray(
 		pHeader,
 		pArray, pLength,
 		lump, max
+	);
+}
+
+bool BSPParser::ParseLump(
+	const uint8_t* pData, const size_t size,
+	const Header* pHeader,
+	const Plane** pArray, size_t* pLength
+) {
+	return ParseLumpBase(
+		pData, size,
+		pHeader,
+		pArray, pLength,
+		LUMP::PLANES, MAX_MAP_PLANES
 	);
 }
 

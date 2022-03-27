@@ -19,6 +19,13 @@ namespace BSPParser
 	bool ParseArray(
 		const uint8_t* pData, const size_t size,
 		const BSPStructs::Header* pHeader,
+		const char** pArray, size_t* pLength,
+		const  BSPEnums::LUMP lump, const size_t max
+	);
+
+	bool ParseArray(
+		const uint8_t* pData, const size_t size,
+		const BSPStructs::Header* pHeader,
 		const int32_t** pArray, size_t* pLength,
 		const  BSPEnums::LUMP lump, const size_t max
 	);
@@ -26,9 +33,16 @@ namespace BSPParser
 	bool ParseArray(
 		const uint8_t* pData, const size_t size,
 		const BSPStructs::Header* pHeader,
-		const char** pArray, size_t* pLength,
+		const BSPStructs::Vector** pArray, size_t* pLength,
 		const  BSPEnums::LUMP lump, const size_t max
 	);
+
+	bool ParseLump(
+		const uint8_t* pData, const size_t size,
+		const BSPStructs::Header* pHeader,
+		const BSPStructs::Plane** pArray, size_t* pLength
+	);
+
 
 	bool ParseLump(
 		const uint8_t* pData, const size_t size,
