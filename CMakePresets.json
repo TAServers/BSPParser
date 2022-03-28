@@ -9,6 +9,7 @@
 		{
 			"name": "windows-x64-debug",
 			"displayName": "Windows x64 Debug",
+			"generator": "Ninja",
 			"binaryDir": "${sourceDir}/out/build/${presetName}",
 			"architecture": {
 				"value": "x64",
@@ -26,7 +27,8 @@
 		},
 		{
 			"name": "windows-x64-relwithsymbols",
-			"displayName": "Windows x64 Release",
+			"displayName": "Windows x64 RelWithSymbols",
+			"generator": "Ninja",
 			"binaryDir": "${sourceDir}/out/build/${presetName}",
 			"architecture": {
 				"value": "x64",
@@ -38,16 +40,17 @@
 			},
 			"vendor": {
 				"microsoft.com/VisualStudioSettings/CMake/1.0": {
-					"hostOS": ["Windows"]
+					"hostOS": [ "Windows" ]
 				}
 			}
 		},
 		{
-			"name": "windows-x86-release",
-			"displayName": "Windows x86 Release",
+			"name": "windows-x64-release",
+			"displayName": "Windows x64 Release",
+			"generator": "Ninja",
 			"binaryDir": "${sourceDir}/out/build/${presetName}",
 			"architecture": {
-				"value": "x86",
+				"value": "x64",
 				"strategy": "external"
 			},
 			"cacheVariables": {
@@ -56,13 +59,14 @@
 			},
 			"vendor": {
 				"microsoft.com/VisualStudioSettings/CMake/1.0": {
-					"hostOS": ["Windows"]
+					"hostOS": [ "Windows" ]
 				}
 			}
 		},
 		{
 			"name": "windows-x86-debug",
 			"displayName": "Windows x86 Debug",
+			"generator": "Ninja",
 			"binaryDir": "${sourceDir}/out/build/${presetName}",
 			"architecture": {
 				"value": "x86",
@@ -74,13 +78,14 @@
 			},
 			"vendor": {
 				"microsoft.com/VisualStudioSettings/CMake/1.0": {
-					"hostOS": ["Windows"]
+					"hostOS": [ "Windows" ]
 				}
 			}
 		},
 		{
 			"name": "windows-x86-relwithsymbols",
-			"displayName": "Windows x86 Release",
+			"displayName": "Windows x86 RelWithSymbols",
+			"generator": "Ninja",
 			"binaryDir": "${sourceDir}/out/build/${presetName}",
 			"architecture": {
 				"value": "x86",
@@ -92,13 +97,14 @@
 			},
 			"vendor": {
 				"microsoft.com/VisualStudioSettings/CMake/1.0": {
-					"hostOS": ["Windows"]
+					"hostOS": [ "Windows" ]
 				}
 			}
 		},
 		{
 			"name": "windows-x86-release",
 			"displayName": "Windows x86 Release",
+			"generator": "Ninja",
 			"binaryDir": "${sourceDir}/out/build/${presetName}",
 			"architecture": {
 				"value": "x86",
@@ -110,7 +116,7 @@
 			},
 			"vendor": {
 				"microsoft.com/VisualStudioSettings/CMake/1.0": {
-					"hostOS": ["Windows"]
+					"hostOS": [ "Windows" ]
 				}
 			}
 		}
