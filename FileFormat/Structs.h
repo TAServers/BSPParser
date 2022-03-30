@@ -90,6 +90,6 @@ namespace BSPStructs {
 		Vector reflectivity;
 		int32_t nameStringTableId;
 		int32_t width, height;
-		int32_t viewWidth;
+		int32_t viewWidth, viewHeight;
 	};
 }

@@ -18,18 +18,31 @@ bool BSPMap::IsFaceNodraw(const Face* pFace) const
 		pFace->texInfo < 0 ||
 		(
 			mpTexInfos[pFace->texInfo].flags &
-			static_cast<int32_t>(SURF::SKY2D | SURF::NODRAW | SURF::SKIP | SURF::HITBOX)
+			static_cast<int32_t>(SURF::SKY2D | SURF::SKY | SURF::NODRAW | SURF::SKIP | SURF::HITBOX)
 		) != 0
 	);
 }
 
-void BSPMap::CalcUVs(
-	const TexInfo* pTexInfo, const float* pos,
+void BSPMap::FreeAll()
+{
+	if (mpData       != nullptr) free(mpData);
+	if (mpPositions  != nullptr) free(mpPositions);
+	if (mpNormals    != nullptr) free(mpNormals);
+	if (mpTangents   != nullptr) free(mpTangents);
+	if (mpBinormals  != nullptr) free(mpBinormals);
+	if (mpUVs        != nullptr) free(mpUVs);
+	if (mpTexIndices != nullptr) free(mpTexIndices);
+}
+
+bool BSPMap::CalcUVs(
+	const int32_t texInfoIdx, const float* pos,
 	float* pUVs
 ) const
 {
-	if (pTexInfo->texData < 0 || pTexInfo->texData >= mNumTexDatas)
-		throw std::runtime_error("BSP contains invalid texdata offset");
+	if (texInfoIdx < 0 || texInfoIdx > mNumTexInfos) return false;
+	const TexInfo* pTexInfo = mpTexInfos + texInfoIdx;
+
+	if (pTexInfo->texData < 0 || pTexInfo->texData >= mNumTexDatas) return false;
 	const TexData* pTexData = mpTexDatas + pTexInfo->texData;
 
 	const float* s = pTexInfo->textureVecs[0];
@@ -40,6 +53,128 @@ void BSPMap::CalcUVs(
 
 	pUVs[0] /= static_cast<float>(pTexData->width);
 	pUVs[1] /= static_cast<float>(pTexData->height);
+
+	return true;
+}
+
+bool BSPMap::GetSurfEdgeVerts(const int32_t index, float* pVertA, float* pVertB) const
+{
+	if (index < 0 || index >= mNumSurfEdges) return false;
+
+	int32_t edgeIdx = mpSurfEdges[index];
+	if (abs(edgeIdx) > mNumEdges) return false;
+
+	uint16_t iA = mpEdges[abs(edgeIdx)].vertices[0];
+	uint16_t iB = mpEdges[abs(edgeIdx)].vertices[1];
+
+	if (iA >= mNumVertices || iB >= mNumVertices) return false;
+
+	if (edgeIdx < 0) std::swap(iA, iB);
+
+	memcpy(pVertA, mpVertices + iA, 3 * sizeof(float));
+	if (pVertB != nullptr)
+		memcpy(pVertB, mpVertices + iB, 3 * sizeof(float));
+
+	return true;
+}
+
+bool BSPMap::Triangulate()
+{
+	// Calculate number of tris in the map
+	mNumTris = 0U;
+	for (const Face* pFace = mpFaces; pFace < mpFaces + mNumFaces; pFace++) {
+		if (IsFaceNodraw(pFace) || pFace->numEdges < 3) continue;
+		mNumTris += pFace->numEdges - 2;
+	}
+	if (mNumTris == 0U) return false;
+
+	// malloc buffers
+	mpPositions  = reinterpret_cast<float*>(malloc(sizeof(float) * 3U * 3U * mNumTris));
+	mpNormals    = reinterpret_cast<float*>(malloc(sizeof(float) * 3U * mNumTris));
+	mpTangents   = reinterpret_cast<float*>(malloc(sizeof(float) * 3U * mNumTris));
+	mpBinormals  = reinterpret_cast<float*>(malloc(sizeof(float) * 3U * mNumTris));
+	mpUVs        = reinterpret_cast<float*>(malloc(sizeof(float) * 2U * 3U * mNumTris));
+	mpTexIndices = reinterpret_cast<uint32_t*>(malloc(sizeof(uint32_t) * mNumTris));
+
+	if (
+		mpPositions  == nullptr ||
+		mpNormals    == nullptr ||
+		mpTangents   == nullptr ||
+		mpBinormals  == nullptr ||
+		mpUVs        == nullptr ||
+		mpTexIndices == nullptr
+	) {
+		FreeAll();
+		return false;
+	}
+
+	// Read data into buffers
+	size_t triIdx = 0U;
+	size_t vertAIdx = 0U, vertBIdx = 1U, vertCIdx = 2U;
+	for (const Face* pFace = mpFaces; pFace < mpFaces + mNumFaces; pFace++) {
+		if (IsFaceNodraw(pFace) || pFace->numEdges < 3) continue;
+
+		// Get ref to root vertex
+		float* root = new float[3], * rootUV = new float[2];
+		GetSurfEdgeVerts(pFace->firstEdge, root);
+		CalcUVs(pFace->texInfo, root, rootUV);
+
+		// Get normal
+		int16_t planeIdx = pFace->planeNum;
+		if (planeIdx < 0 || planeIdx > mNumPlanes) {
+			FreeAll();
+			return false;
+		}
+
+		Vector normal = mpPlanes[planeIdx].normal;
+		if (pFace->side != 0) {
+			normal.x = -normal.x;
+			normal.y = -normal.y;
+			normal.z = -normal.z;
+		}
+
+		// Get texture index
+		uint32_t texIdx = pFace->texInfo;
+
+		// For each edge (ignoring first and last)
+		for (
+			int32_t surfEdgeIdx = pFace->firstEdge + 1;
+			surfEdgeIdx < pFace->firstEdge + pFace->numEdges - 1;
+			surfEdgeIdx++
+			) {
+			// Add vertices to positions
+			memcpy(mpPositions + vertAIdx, root, 3U * sizeof(float));
+			if (!GetSurfEdgeVerts(surfEdgeIdx, mpPositions + vertBIdx, mpPositions + vertCIdx)) {
+				FreeAll();
+				return false;
+			}
+
+			// Calculate UVs
+			memcpy(mpUVs + vertAIdx, rootUV, 2U * sizeof(float));
+			if (
+				!CalcUVs(texIdx, mpPositions + vertBIdx, mpUVs + vertBIdx) ||
+				!CalcUVs(texIdx, mpPositions + vertCIdx, mpUVs + vertCIdx)
+			) {
+				FreeAll();
+				return false;
+			}
+
+			// Add normal and compute tangent/bitangent
+
+			// Add texture index
+			mpTexIndices[triIdx] = texIdx;
+
+			// Increment indices
+			vertAIdx += 3U;
+			vertBIdx += 3U;
+			vertCIdx += 3U;
+			triIdx++;
+		}
+
+		delete[] root;
+	}
+
+	return true;
 }
 
 BSPMap::BSPMap(
@@ -49,6 +184,7 @@ BSPMap::BSPMap(
 	if (pFileData == nullptr || dataSize == 0U) return;
 
 	mpData = reinterpret_cast<uint8_t*>(malloc(dataSize));
+	if (mpData == nullptr) return;
 	memcpy(mpData, pFileData, dataSize);
 
 	if (
@@ -85,17 +221,15 @@ BSPMap::BSPMap(
 		)
 	) {
 		free(mpData);
-		mpData = nullptr;
-		mDataSize = 0U;
 		return;
 	}
 
-	mIsValid = true;
+	if (Triangulate()) mIsValid = true;
 }
 
 BSPMap::~BSPMap()
 {
-	if (mpData != nullptr) free(mpData);
+	FreeAll();
 }
 
 bool BSPMap::IsValid() const { return mIsValid; }
@@ -108,98 +242,28 @@ BSPTexture BSPMap::GetTexture(const uint32_t index) const
 	const TexInfo* pTexInfo = mpTexInfos + index;
 
 	if (pTexInfo->texData < 0 || pTexInfo->texData >= mNumTexDatas)
-		throw std::runtime_error("BSP contains invalid texdata offset");
+		throw std::runtime_error("TexData index out of bounds");
 	const TexData* pTexData = mpTexDatas + pTexInfo->texData;
 
 	if (
 		pTexData->nameStringTableId < 0 ||
 		pTexData->nameStringTableId >= mNumTexDataStringTableEntries
-	) throw std::runtime_error("BSP contains invalid texdata string table offset");
+	) throw std::runtime_error("TexData string table index out of bounds");
 
 	BSPTexture ret{};
 	ret.flags = pTexInfo->flags;
 	ret.reflectivity = pTexData->reflectivity;
-	ret.texturePath = mpTexDataStringData + mpTexDataStringTable[pTexData->nameStringTableId];
+	ret.path = mpTexDataStringData + mpTexDataStringTable[pTexData->nameStringTableId];
 	ret.width = pTexData->width;
 	ret.height = pTexData->height;
 
 	return ret;
 }
 
-size_t BSPMap::Triangulate(
-	float** pPositions,
-	float** pNormals, float** pTangents, float** pBinormals,
-	float** pUVs, uint32_t** pTexIndices
-) const
-{
-	// Calculate number of tris in the map
-	size_t numTris = 0U;
-	for (const Face* pFace = mpFaces; pFace < mpFaces + mNumFaces; pFace++) {
-		if (IsFaceNodraw(pFace)) continue;
-		numTris += pFace->numEdges - 2;
-	}
-
-	// malloc buffers
-	*pPositions  = reinterpret_cast<float*>(malloc(sizeof(float) * 3U * numTris));
-	*pNormals    = reinterpret_cast<float*>(malloc(sizeof(float) * 3U * numTris));
-	*pTangents   = reinterpret_cast<float*>(malloc(sizeof(float) * 3U * numTris));
-	*pBinormals  = reinterpret_cast<float*>(malloc(sizeof(float) * 3U * numTris));
-	*pUVs        = reinterpret_cast<float*>(malloc(sizeof(float) * 2U * numTris));
-	*pTexIndices = reinterpret_cast<uint32_t*>(malloc(sizeof(uint32_t) * numTris));
-
-	// Read data into buffers
-	size_t triIdx = 0U;
-	for (const Face* pFace = mpFaces; pFace < mpFaces + mNumFaces; pFace++) {
-		if (IsFaceNodraw(pFace) || pFace->numEdges < 3) continue;
-
-		// Get ref to root vertex
-		// Get normal
-		// Get texture index
-
-		// For each edge (ignoring first and last)
-		//	Add vertices to positions
-		//  Compute tangent/bitangent and add to arrays
-
-		if (pFace->firstEdge < 0 || pFace->firstEdge >= mNumSurfEdges)
-			throw std::runtime_error("BSP contains invalid surfedge offset");
-
-		int32_t edgeIdx = mpSurfEdges[pFace->firstEdge];
-		if (abs(edgeIdx) > mNumEdges)
-			throw std::runtime_error("BSP contains invalid edge offset");
-
-		int32_t vertIdx = mpEdges[abs(edgeIdx)].vertices[edgeIdx < 0 ? 1 : 0];
-		if (vertIdx < 0 || vertIdx > mNumVertices)
-			throw std::runtime_error("BSP contains invalid vertex offset");
-
-		const float* root = reinterpret_cast<const float*>(mpVertices + vertIdx);
-
-		int16_t planeIdx = pFace->planeNum;
-		if (planeIdx < 0 || planeIdx > mNumPlanes)
-			throw std::runtime_error("BSP contains invalid plane offset");
-
-		Vector normal = mpPlanes[planeIdx].normal;
-		if (pFace->side != 0) {
-			normal.x = -normal.x;
-			normal.y = -normal.y;
-			normal.z = -normal.z;
-		}
-	}
-}
-
-int main()
-{
-	const char* path = "C:\\Users\\eds\\Documents\\Programming\\gmodmaps\\spot_test\\spot_test.bsp";
-
-	size_t size = std::filesystem::file_size(path);
-	char* data = reinterpret_cast<char*>(malloc(size));
-
-	auto fs = std::ifstream(path, std::ifstream::binary);
-	fs.read(data, size);
-
-	auto bsp = BSPMap(reinterpret_cast<uint8_t*>(data), size);
-	free(data);
-
-	std::cout << bsp.IsValid() << std::endl;
-
-	return 0;
-}
+size_t BSPMap::GetNumTris() const { return mNumTris; }
+const float* BSPMap::GetVertPositions() const { return mpPositions; }
+const float* BSPMap::GetTriNormals() const { return mpNormals; }
+const float* BSPMap::GetTriTangents() const { return mpTangents; }
+const float* BSPMap::GetTriBinormals() const { return mpBinormals; }
+const float* BSPMap::GetVertUVs() const { return mpUVs; }
+const uint32_t* BSPMap::GetTriTextures() const { return mpTexIndices; }
