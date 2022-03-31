@@ -3,14 +3,53 @@
 
 #include <cstring>
 #include <stdlib.h>
-
-// DEBUG, REMOVE
-#include <iostream>
-#include <fstream>
-#include <filesystem>
+#include <cmath>
+#include <stdexcept>
 
 using namespace BSPStructs;
 using namespace BSPEnums;
+
+inline void Orthogonalise(float* v, const float* basis)
+{
+	float dot = v[0] * basis[0] + v[1] * basis[1] + v[2] * basis[2];
+	v[0] -= basis[0] * dot;
+	v[1] -= basis[1] * dot;
+	v[2] -= basis[2] * dot;
+
+	float length = sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+	v[0] /= length;
+	v[1] /= length;
+	v[2] /= length;
+}
+
+inline void NegCross(const float* a, const float* b, float* out)
+{
+	out[0] = a[2] * b[1] - a[1] * b[2];
+	out[1] = a[0] * b[2] - a[2] * b[0];
+	out[2] = a[1] * b[0] - a[0] * b[1];
+}
+
+void CalcTangentBinormal(
+	const float* p0, const float* p1, const float* p2,
+	const float* uv0, const float* uv1, const float* uv2,
+	const float* n,	float* t, float* b
+)
+{
+	float edge0[3] = { p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2] };
+	float edge1[3] = { p2[0] - p0[0], p2[1] - p0[1], p2[2] - p0[2] };
+
+	float dUV0[2] = { uv1[0] - uv0[0], uv1[1] - uv0[1] };
+	float dUV1[2] = { uv2[0] - uv0[0], uv2[1] - uv0[1] };
+
+	float f = 1.f / (dUV0[0] * dUV1[1] - dUV1[0] * dUV0[1]);
+
+	t[0] = f * (dUV1[1] * edge0[0] - dUV0[1] * edge1[0]);
+	t[1] = f * (dUV1[1] * edge0[1] - dUV0[1] * edge1[1]);
+	t[2] = f * (dUV1[1] * edge0[2] - dUV0[1] * edge1[2]);
+
+	Orthogonalise(t, n);
+	NegCross(n, t, b);
+}
 
 bool BSPMap::IsFaceNodraw(const Face* pFace) const
 {
@@ -110,7 +149,6 @@ bool BSPMap::Triangulate()
 
 	// Read data into buffers
 	size_t triIdx = 0U;
-	size_t vertAIdx = 0U, vertBIdx = 1U, vertCIdx = 2U;
 	for (const Face* pFace = mpFaces; pFace < mpFaces + mNumFaces; pFace++) {
 		if (IsFaceNodraw(pFace) || pFace->numEdges < 3) continue;
 
@@ -141,33 +179,49 @@ bool BSPMap::Triangulate()
 			int32_t surfEdgeIdx = pFace->firstEdge + 1;
 			surfEdgeIdx < pFace->firstEdge + pFace->numEdges - 1;
 			surfEdgeIdx++
-			) {
+		) {
+			// Offsets
+			float* p0 = mpPositions + triIdx * 3U * 3U;
+			float* p1 = mpPositions + triIdx * 3U * 3U + 3U;
+			float* p2 = mpPositions + triIdx * 3U * 3U + 6U;
+
+			float* n = mpNormals   + triIdx * 3U;
+			float* t = mpTangents  + triIdx * 3U;
+			float* b = mpBinormals + triIdx * 3U;
+
+			float* uv0 = mpUVs + triIdx * 3U * 2U;
+			float* uv1 = mpUVs + triIdx * 3U * 2U + 2U;
+			float* uv2 = mpUVs + triIdx * 3U * 2U + 4U;
+
 			// Add vertices to positions
-			memcpy(mpPositions + vertAIdx, root, 3U * sizeof(float));
-			if (!GetSurfEdgeVerts(surfEdgeIdx, mpPositions + vertBIdx, mpPositions + vertCIdx)) {
+			memcpy(p0, root, 3U * sizeof(float));
+			if (!GetSurfEdgeVerts(surfEdgeIdx, p1, p2)) {
 				FreeAll();
 				return false;
 			}
 
 			// Calculate UVs
-			memcpy(mpUVs + vertAIdx, rootUV, 2U * sizeof(float));
+			memcpy(uv0, rootUV, 2U * sizeof(float));
 			if (
-				!CalcUVs(texIdx, mpPositions + vertBIdx, mpUVs + vertBIdx) ||
-				!CalcUVs(texIdx, mpPositions + vertCIdx, mpUVs + vertCIdx)
+				!CalcUVs(texIdx, p1, uv1) ||
+				!CalcUVs(texIdx, p2, uv2)
 			) {
 				FreeAll();
 				return false;
 			}
 
 			// Add normal and compute tangent/bitangent
+			memcpy(n, &normal, 3U * sizeof(float));
+			CalcTangentBinormal(
+				p0, p1, p2,
+				uv0, uv1, uv2,
+				n, t, b
+			);
 
 			// Add texture index
 			mpTexIndices[triIdx] = texIdx;
 
-			// Increment indices
-			vertAIdx += 3U;
-			vertBIdx += 3U;
-			vertCIdx += 3U;
+			// Increment
 			triIdx++;
 		}
 

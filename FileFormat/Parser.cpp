@@ -1,6 +1,7 @@
 #include "Parser.h"
 
 #include <cstring>
+#include <cmath>
 
 #include "Enums.h"
 
@@ -49,6 +50,9 @@ bool ParseLumpBase(
 		pArray == nullptr ||
 		pLength == nullptr
 	) return false;
+
+	if (pHeader->lumps[static_cast<size_t>(lump)].length % sizeof(LumpDatatype) != 0)
+		return false;
 
 	const uint8_t* pLumpData;
 	if (BSPParser::GetLumpPtr(pData, size, pHeader, lump, &pLumpData) == false)
