@@ -51,6 +51,12 @@ private:
 	const char* mpTexDataStringData;
 	size_t mNumTexDataStringDatas = 0U;
 
+	const BSPStructs::DispInfo* mpDispInfos;
+	size_t mNumDispInfos;
+
+	const BSPStructs::DispVert* mpDispVerts;
+	size_t mNumDispVerts;
+
 	// Triangulated faces
 	size_t mNumTris = 0U;
 
@@ -79,6 +85,13 @@ private:
 	) const;
 
 	bool GetSurfEdgeVerts(const int32_t index, float* pVertA, float* pVertB = nullptr) const;
+
+	void GenerateDispVert(
+		const BSPStructs::DispVert* pDispVert,
+		int32_t x, int32_t y, int32_t size,
+		const float* corners, int32_t firstCorner,
+		float* pVert
+	) const;
 
 	bool Triangulate();
 

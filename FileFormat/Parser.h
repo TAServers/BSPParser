@@ -67,4 +67,16 @@ namespace BSPParser
 		const BSPStructs::Header* pHeader,
 		const BSPStructs::TexData** pArray, size_t* pLength
 	);
+
+	bool ParseLump(
+		const uint8_t* pData, const size_t size,
+		const BSPStructs::Header* pHeader,
+		const BSPStructs::DispInfo** pArray, size_t* pLength
+	);
+
+	bool ParseLump(
+		const uint8_t* pData, const size_t size,
+		const BSPStructs::Header* pHeader,
+		const BSPStructs::DispVert** pArray, size_t* pLength
+	);
 }

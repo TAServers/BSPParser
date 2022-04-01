@@ -92,4 +92,34 @@ namespace BSPStructs {
 		int32_t width, height;
 		int32_t viewWidth, viewHeight;
 	};
+
+	struct DispInfo
+	{
+		Vector startPosition;
+	
+		int32_t dispVertStart;
+		int32_t dispTriStart;
+	
+		int32_t power;
+		int32_t minTess;
+	
+		float smoothingAngle;
+		int32_t contents;
+		uint16_t mapFace;
+		int32_t lightmapAlphaStart;
+		int32_t lightmapSamplePositionStart;
+
+		// CDispNeighbour edgeNeighbours[4]
+		// CDispCornerNeighbours cornerNeighbours[4]
+		uint8_t unused[88];
+
+		uint32_t allowedVerts[10];
+	};
+
+	struct DispVert
+	{
+		Vector vec;
+		float dist;
+		float alpha;
+	};
 }

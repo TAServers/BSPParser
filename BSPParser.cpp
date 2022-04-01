@@ -117,13 +117,44 @@ bool BSPMap::GetSurfEdgeVerts(const int32_t index, float* pVertA, float* pVertB)
 	return true;
 }
 
+void BSPMap::GenerateDispVert(
+	const DispVert* pDispVert,
+	int32_t x, int32_t y, int32_t size,
+	const float* corners, int32_t firstCorner,
+	float* pVert
+) const
+{
+	float tx = static_cast<float>(x) / static_cast<float>(size);
+	float ty = static_cast<float>(y) / static_cast<float>(size);
+	float sx = 1.f - tx, sy = 1.f - ty;
+
+	const float* c0 = corners + ((0 + firstCorner) & 3);
+	const float* c1 = corners + ((1 + firstCorner) & 3);
+	const float* c2 = corners + ((2 + firstCorner) & 3);
+	const float* c3 = corners + ((3 + firstCorner) & 3);
+
+	for (size_t i = 0; i < 3; i++) {
+		pVert[i] = (c1[i] * sx + c2[i] * tx) * ty + (c0[i] * sx + c3[i] * tx) * sy;
+		pVert[i] += reinterpret_cast<const float*>(&pDispVert->vec)[i] * pDispVert->dist;
+	}
+}
+
 bool BSPMap::Triangulate()
 {
 	// Calculate number of tris in the map
 	mNumTris = 0U;
 	for (const Face* pFace = mpFaces; pFace < mpFaces + mNumFaces; pFace++) {
 		if (IsFaceNodraw(pFace) || pFace->numEdges < 3) continue;
-		mNumTris += pFace->numEdges - 2;
+
+		int16_t dispIdx = pFace->dispInfo;
+		if (dispIdx == -1) { // Not a displacement
+			mNumTris += pFace->numEdges - 2;
+		} else {
+			if (dispIdx < 0 || dispIdx >= mNumDispInfos) return false;
+
+			int32_t size = 1 << mpDispInfos[dispIdx].power;
+			mNumTris += size * size * 2;
+		}
 	}
 	if (mNumTris == 0U) return false;
 
@@ -152,11 +183,6 @@ bool BSPMap::Triangulate()
 	for (const Face* pFace = mpFaces; pFace < mpFaces + mNumFaces; pFace++) {
 		if (IsFaceNodraw(pFace) || pFace->numEdges < 3) continue;
 
-		// Get ref to root vertex
-		float* root = new float[3], * rootUV = new float[2];
-		GetSurfEdgeVerts(pFace->firstEdge, root);
-		CalcUVs(pFace->texInfo, root, rootUV);
-
 		// Get normal
 		int16_t planeIdx = pFace->planeNum;
 		if (planeIdx < 0 || planeIdx > mNumPlanes) {
@@ -174,58 +200,176 @@ bool BSPMap::Triangulate()
 		// Get texture index
 		uint32_t texIdx = pFace->texInfo;
 
-		// For each edge (ignoring first and last)
-		for (
-			int32_t surfEdgeIdx = pFace->firstEdge + 1;
-			surfEdgeIdx < pFace->firstEdge + pFace->numEdges - 1;
-			surfEdgeIdx++
-		) {
-			// Offsets
-			float* p0 = mpPositions + triIdx * 3U * 3U;
-			float* p1 = mpPositions + triIdx * 3U * 3U + 3U;
-			float* p2 = mpPositions + triIdx * 3U * 3U + 6U;
+		// Get displacement index
+		int16_t dispIdx = pFace->dispInfo;
 
-			float* n = mpNormals   + triIdx * 3U;
-			float* t = mpTangents  + triIdx * 3U;
-			float* b = mpBinormals + triIdx * 3U;
+		// Offsets
+		float* p0 = mpPositions;
+		float* p1 = mpPositions + 3U;
+		float* p2 = mpPositions + 6U;
 
-			float* uv0 = mpUVs + triIdx * 3U * 2U;
-			float* uv1 = mpUVs + triIdx * 3U * 2U + 2U;
-			float* uv2 = mpUVs + triIdx * 3U * 2U + 4U;
+		float* n = mpNormals;
+		float* t = mpTangents;
+		float* b = mpBinormals;
 
-			// Add vertices to positions
-			memcpy(p0, root, 3U * sizeof(float));
-			if (!GetSurfEdgeVerts(surfEdgeIdx, p1, p2)) {
-				FreeAll();
-				return false;
-			}
+		float* uv0 = mpUVs;
+		float* uv1 = mpUVs + 2U;
+		float* uv2 = mpUVs + 4U;
 
-			// Calculate UVs
-			memcpy(uv0, rootUV, 2U * sizeof(float));
-			if (
-				!CalcUVs(texIdx, p1, uv1) ||
-				!CalcUVs(texIdx, p2, uv2)
+		if (dispIdx == -1) { // Triangulate face
+			// Get root vertex
+			float root[3], rootUV[2];
+			GetSurfEdgeVerts(pFace->firstEdge, root);
+			CalcUVs(pFace->texInfo, root, rootUV);
+
+			// For each edge (ignoring first and last)
+			for (
+				int32_t surfEdgeIdx = pFace->firstEdge + 1;
+				surfEdgeIdx < pFace->firstEdge + pFace->numEdges - 1;
+				surfEdgeIdx++
 			) {
-				FreeAll();
-				return false;
+				// Add vertices to positions
+				memcpy(p0, root, 3U * sizeof(float));
+				if (!GetSurfEdgeVerts(surfEdgeIdx, p1, p2)) {
+					FreeAll();
+					return false;
+				}
+
+				// Calculate UVs
+				memcpy(uv0, rootUV, 2U * sizeof(float));
+				if (
+					!CalcUVs(texIdx, p1, uv1) ||
+					!CalcUVs(texIdx, p2, uv2)
+				) {
+					FreeAll();
+					return false;
+				}
+
+				// Add normal and compute tangent/bitangent
+				memcpy(n, &normal, 3U * sizeof(float));
+				CalcTangentBinormal(
+					p0, p1, p2,
+					uv0, uv1, uv2,
+					n, t, b
+				);
+
+				// Add texture index
+				mpTexIndices[triIdx] = texIdx;
+
+				// Increment
+				triIdx++;
+
+				p0 += 3U * 3U;
+				p1 += 3U * 3U;
+				p2 += 3U * 3U;
+
+				n += 3U;
+				t += 3U;
+				b += 3U;
+
+				uv0 += 3U * 2U;
+				uv1 += 3U * 2U;
+				uv2 += 3U * 2U;
+			}
+		} else { // Triangulate displacement (https://github.com/Galaco/kero/blob/master/scene/loaders/bsp.go#L255)
+			const DispInfo* pDispInfo = mpDispInfos + dispIdx;
+			int32_t size = 1 << pDispInfo->power;
+
+			float corners[4 * 3];
+			int32_t firstCorner = 0;
+			float firstCornerDist2 = __FLT_MAX__;
+
+			for (
+				int32_t surfEdgeIdx = pFace->firstEdge;
+				surfEdgeIdx < pFace->firstEdge + pFace->numEdges;
+				surfEdgeIdx++
+			) {
+				float vert[3];
+				if (!GetSurfEdgeVerts(surfEdgeIdx, vert)) {
+					FreeAll();
+					return false;
+				}
+				memcpy(corners + (surfEdgeIdx - pFace->firstEdge), vert, 3U * sizeof(float));
+
+				float distVec[3] = {
+					pDispInfo->startPosition.x - vert[0],
+					pDispInfo->startPosition.y - vert[1],
+					pDispInfo->startPosition.z - vert[2]
+				};
+				float dist2 = distVec[0] * distVec[0] + distVec[1] * distVec[1] + distVec[2] * distVec[2];
+				if (dist2 < firstCornerDist2) {
+					firstCorner = surfEdgeIdx - pFace->firstEdge;
+					firstCornerDist2 = dist2;
+				}
 			}
 
-			// Add normal and compute tangent/bitangent
-			memcpy(n, &normal, 3U * sizeof(float));
-			CalcTangentBinormal(
-				p0, p1, p2,
-				uv0, uv1, uv2,
-				n, t, b
-			);
+			for (int32_t x = 0; x < size; x++) {
+				for (int32_t y = 0; y < size; y++) {
+					float dispVerts[3 * 4];
 
-			// Add texture index
-			mpTexIndices[triIdx] = texIdx;
+					// Calculate displacement vertices
+					GenerateDispVert(
+						mpDispVerts + pDispInfo->dispVertStart + x + y * (size + 1),
+						x, y, size,
+						corners, firstCorner,
+						dispVerts
+					);
+					GenerateDispVert(
+						mpDispVerts + pDispInfo->dispVertStart + x + (y + 1) * (size + 1),
+						x, y + 1, size,
+						corners, firstCorner,
+						dispVerts + 3U
+					);
+					GenerateDispVert(
+						mpDispVerts + pDispInfo->dispVertStart + x + 1 + (y + 1) * (size + 1),
+						x + 1, y + 1, size,
+						corners, firstCorner,
+						dispVerts + 6U
+					);
+					GenerateDispVert(
+						mpDispVerts + pDispInfo->dispVertStart + x + 1 + y * (size + 1),
+						x + 1, y, size,
+						corners, firstCorner,
+						dispVerts + 9U
+					);
 
-			// Increment
-			triIdx++;
+					// Write tris
+					for (size_t offset = 3U; offset <= 6U; offset += 3U) {
+						memcpy(p0, dispVerts, 3U * sizeof(float));
+						memcpy(p1, dispVerts + offset, 3U * sizeof(float));
+						memcpy(p2, dispVerts + offset + 3U, 3U * sizeof(float));
+
+						if (
+							!CalcUVs(texIdx, p0, uv0) ||
+							!CalcUVs(texIdx, p1, uv1) ||
+							!CalcUVs(texIdx, p2, uv2)
+						) {
+							FreeAll();
+							return false;
+						}
+
+						memcpy(n, &normal, 3U * sizeof(float));
+						CalcTangentBinormal(
+							p0, p1, p2,
+							uv0, uv1, uv2,
+							n, t, b
+						);
+
+						p0 += 3U * 3U;
+						p1 += 3U * 3U;
+						p2 += 3U * 3U;
+
+						n += 3U;
+						t += 3U;
+						b += 3U;
+
+						uv0 += 3U * 2U;
+						uv1 += 3U * 2U;
+						uv2 += 3U * 2U;
+					}
+				}
+			}
 		}
-
-		delete[] root;
 	}
 
 	return true;
@@ -272,7 +416,8 @@ BSPMap::BSPMap(
 			mpHeader,
 			&mpTexDataStringData, &mNumTexDataStringDatas,
 			LUMP::TEXDATA_STRING_DATA, MAX_MAP_TEXDATA_STRING_DATA
-		)
+		) ||
+		!ParseLump(&mpDispInfos, &mNumDispInfos)
 	) {
 		free(mpData);
 		return;

@@ -174,3 +174,29 @@ bool BSPParser::ParseLump(
 		LUMP::TEXDATA, MAX_MAP_TEXDATA
 	);
 }
+
+bool BSPParser::ParseLump(
+	const uint8_t* pData, const size_t size,
+	const Header* pHeader,
+	const DispInfo** pArray, size_t* pLength
+) {
+	return ParseLumpBase(
+		pData, size,
+		pHeader,
+		pArray, pLength,
+		LUMP::DISPINFO, MAX_MAP_DISPINFO
+	);
+}
+
+bool BSPParser::ParseLump(
+	const uint8_t* pData, const size_t size,
+	const Header* pHeader,
+	const DispVert** pArray, size_t* pLength
+) {
+	return ParseLumpBase(
+		pData, size,
+		pHeader,
+		pArray, pLength,
+		LUMP::DISP_VERTS, MAX_MAP_DISP_VERTS
+	);
+}
