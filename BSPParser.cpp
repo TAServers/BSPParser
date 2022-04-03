@@ -117,13 +117,19 @@ bool BSPMap::GetSurfEdgeVerts(const int32_t index, float* pVertA, float* pVertB)
 	return true;
 }
 
-void BSPMap::GenerateDispVert(
-	const DispVert* pDispVert,
+bool BSPMap::GenerateDispVert(
+	const int32_t dispVertStart,
 	int32_t x, int32_t y, int32_t size,
 	const float* corners, int32_t firstCorner,
 	float* pVert
 ) const
 {
+	int32_t offset = dispVertStart + x + y * (size + 1);
+	if (offset < 0 || offset >= mNumDispVerts) {
+		return false;
+	}
+	const DispVert* pDispVert = mpDispVerts + offset;
+
 	float tx = static_cast<float>(x) / static_cast<float>(size);
 	float ty = static_cast<float>(y) / static_cast<float>(size);
 	float sx = 1.f - tx, sy = 1.f - ty;
@@ -137,6 +143,8 @@ void BSPMap::GenerateDispVert(
 		pVert[i] = (c1[i] * sx + c2[i] * tx) * ty + (c0[i] * sx + c3[i] * tx) * sy;
 		pVert[i] += reinterpret_cast<const float*>(&pDispVert->vec)[i] * pDispVert->dist;
 	}
+
+	return true;
 }
 
 bool BSPMap::Triangulate()
@@ -160,9 +168,9 @@ bool BSPMap::Triangulate()
 
 	// malloc buffers
 	mpPositions  = reinterpret_cast<float*>(malloc(sizeof(float) * 3U * 3U * mNumTris));
-	mpNormals    = reinterpret_cast<float*>(malloc(sizeof(float) * 3U * mNumTris));
-	mpTangents   = reinterpret_cast<float*>(malloc(sizeof(float) * 3U * mNumTris));
-	mpBinormals  = reinterpret_cast<float*>(malloc(sizeof(float) * 3U * mNumTris));
+	mpNormals    = reinterpret_cast<float*>(malloc(sizeof(float) * 3U * 3U * mNumTris));
+	mpTangents   = reinterpret_cast<float*>(malloc(sizeof(float) * 3U * 3U * mNumTris));
+	mpBinormals  = reinterpret_cast<float*>(malloc(sizeof(float) * 3U * 3U * mNumTris));
 	mpUVs        = reinterpret_cast<float*>(malloc(sizeof(float) * 2U * 3U * mNumTris));
 	mpTexIndices = reinterpret_cast<uint32_t*>(malloc(sizeof(uint32_t) * mNumTris));
 
@@ -230,7 +238,10 @@ bool BSPMap::Triangulate()
 			) {
 				// Add vertices to positions
 				memcpy(p0, root, 3U * sizeof(float));
-				if (!GetSurfEdgeVerts(surfEdgeIdx, p1, p2)) {
+				if (
+					(mClockwise && !GetSurfEdgeVerts(surfEdgeIdx, p1, p2)) ||
+					(!mClockwise && !GetSurfEdgeVerts(surfEdgeIdx, p2, p1))
+				) {
 					FreeAll();
 					return false;
 				}
@@ -247,11 +258,18 @@ bool BSPMap::Triangulate()
 
 				// Add normal and compute tangent/bitangent
 				memcpy(n, &normal, 3U * sizeof(float));
+				memcpy(n + 3U, &normal, 3U * sizeof(float));
+				memcpy(n + 6U, &normal, 3U * sizeof(float));
+
 				CalcTangentBinormal(
 					p0, p1, p2,
 					uv0, uv1, uv2,
 					n, t, b
 				);
+				memcpy(t + 3U, t, 3U * sizeof(float));
+				memcpy(t + 6U, t, 3U * sizeof(float));
+				memcpy(b + 3U, b, 3U * sizeof(float));
+				memcpy(b + 6U, b, 3U * sizeof(float));
 
 				// Add texture index
 				mpTexIndices[triIdx] = texIdx;
@@ -308,30 +326,35 @@ bool BSPMap::Triangulate()
 					float dispVerts[3 * 4];
 
 					// Calculate displacement vertices
-					GenerateDispVert(
-						mpDispVerts + pDispInfo->dispVertStart + x + y * (size + 1),
-						x, y, size,
-						corners, firstCorner,
-						dispVerts
-					);
-					GenerateDispVert(
-						mpDispVerts + pDispInfo->dispVertStart + x + (y + 1) * (size + 1),
-						x, y + 1, size,
-						corners, firstCorner,
-						dispVerts + 3U
-					);
-					GenerateDispVert(
-						mpDispVerts + pDispInfo->dispVertStart + x + 1 + (y + 1) * (size + 1),
-						x + 1, y + 1, size,
-						corners, firstCorner,
-						dispVerts + 6U
-					);
-					GenerateDispVert(
-						mpDispVerts + pDispInfo->dispVertStart + x + 1 + y * (size + 1),
-						x + 1, y, size,
-						corners, firstCorner,
-						dispVerts + 9U
-					);
+					if (
+						!GenerateDispVert(
+							pDispInfo->dispVertStart,
+							x, y, size,
+							corners, firstCorner,
+							dispVerts
+						) ||
+						!GenerateDispVert(
+							pDispInfo->dispVertStart,
+							x, y + 1, size,
+							corners, firstCorner,
+							dispVerts + 3U
+						) ||
+						!GenerateDispVert(
+							pDispInfo->dispVertStart,
+							x + 1, y + 1, size,
+							corners, firstCorner,
+							dispVerts + 6U
+						) ||
+						!GenerateDispVert(
+							pDispInfo->dispVertStart,
+							x + 1, y, size,
+							corners, firstCorner,
+							dispVerts + 9U
+						)
+					) {
+						FreeAll();
+						return false;
+					}
 
 					// Write tris
 					for (size_t offset = 3U; offset <= 6U; offset += 3U) {
@@ -376,8 +399,8 @@ bool BSPMap::Triangulate()
 }
 
 BSPMap::BSPMap(
-	const uint8_t* pFileData, const size_t dataSize
-) : mDataSize(dataSize)
+	const uint8_t* pFileData, const size_t dataSize, const bool clockwise
+) : mDataSize(dataSize), mClockwise(clockwise)
 {
 	if (pFileData == nullptr || dataSize == 0U) return;
 
@@ -460,9 +483,9 @@ BSPTexture BSPMap::GetTexture(const uint32_t index) const
 }
 
 size_t BSPMap::GetNumTris() const { return mNumTris; }
-const float* BSPMap::GetVertPositions() const { return mpPositions; }
-const float* BSPMap::GetTriNormals() const { return mpNormals; }
-const float* BSPMap::GetTriTangents() const { return mpTangents; }
-const float* BSPMap::GetTriBinormals() const { return mpBinormals; }
-const float* BSPMap::GetVertUVs() const { return mpUVs; }
+const float* BSPMap::GetVertices() const { return mpPositions; }
+const float* BSPMap::GetNormals() const { return mpNormals; }
+const float* BSPMap::GetTangents() const { return mpTangents; }
+const float* BSPMap::GetBinormals() const { return mpBinormals; }
+const float* BSPMap::GetUVs() const { return mpUVs; }
 const uint32_t* BSPMap::GetTriTextures() const { return mpTexIndices; }

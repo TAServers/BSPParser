@@ -57,7 +57,11 @@ private:
 	const BSPStructs::DispVert* mpDispVerts;
 	size_t mNumDispVerts;
 
-	// Triangulated faces
+	// Triangulation
+
+	// Whether to create CW tris or CCW tris
+	bool mClockwise = true;
+
 	size_t mNumTris = 0U;
 
 	float* mpPositions;
@@ -86,8 +90,8 @@ private:
 
 	bool GetSurfEdgeVerts(const int32_t index, float* pVertA, float* pVertB = nullptr) const;
 
-	void GenerateDispVert(
-		const BSPStructs::DispVert* pDispVert,
+	bool GenerateDispVert(
+		const int32_t dispVertStart,
 		int32_t x, int32_t y, int32_t size,
 		const float* corners, int32_t firstCorner,
 		float* pVert
@@ -96,7 +100,9 @@ private:
 	bool Triangulate();
 
 public:
-	BSPMap(const uint8_t* pFileData, const size_t dataSize);
+	// Parses and triangulates a BSP from raw data
+	// clockwise sets which winding the triangles should have (default true)
+	BSPMap(const uint8_t* pFileData, const size_t dataSize, const bool clockwise = true);
 	~BSPMap();
 
 	// Returns whether the BSP was loaded correctly
@@ -109,19 +115,19 @@ public:
 	size_t GetNumTris() const;
 
 	// Returns a const pointer to the vertex positions as raw float data
-	const float* GetVertPositions() const;
+	const float* GetVertices() const;
 
-	// Returns a const pointer to the triangle normals as raw float data
-	const float* GetTriNormals() const;
+	// Returns a const pointer to the vertex normals as raw float data
+	const float* GetNormals() const;
 
-	// Returns a const pointer to the triangle tangents as raw float data
-	const float* GetTriTangents() const;
+	// Returns a const pointer to the vertex tangents as raw float data
+	const float* GetTangents() const;
 
-	// Returns a const pointer to the triangle binormals as raw float data
-	const float* GetTriBinormals() const;
+	// Returns a const pointer to the vertex binormals as raw float data
+	const float* GetBinormals() const;
 
 	// Returns a const pointer to the vertex UVs as raw float data
-	const float* GetVertUVs() const;
+	const float* GetUVs() const;
 
 	// Returns a const pointer to the triangle TexInfo indices as an array of uint32_t
 	const uint32_t* GetTriTextures() const;
