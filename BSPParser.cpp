@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <cmath>
 #include <stdexcept>
+#include <limits>
 
 using namespace BSPStructs;
 using namespace BSPEnums;
@@ -295,7 +296,7 @@ bool BSPMap::Triangulate()
 
 			float corners[4 * 3];
 			int32_t firstCorner = 0;
-			float firstCornerDist2 = __FLT_MAX__;
+			float firstCornerDist2 = std::numeric_limits<float>::max();
 
 			for (
 				int32_t surfEdgeIdx = pFace->firstEdge;
@@ -440,7 +441,8 @@ BSPMap::BSPMap(
 			&mpTexDataStringData, &mNumTexDataStringDatas,
 			LUMP::TEXDATA_STRING_DATA, MAX_MAP_TEXDATA_STRING_DATA
 		) ||
-		!ParseLump(&mpDispInfos, &mNumDispInfos)
+		!ParseLump(&mpDispInfos, &mNumDispInfos) ||
+		!ParseLump(&mpDispVerts, &mNumDispVerts)
 	) {
 		free(mpData);
 		return;
