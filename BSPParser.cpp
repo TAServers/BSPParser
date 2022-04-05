@@ -156,7 +156,7 @@ bool BSPMap::Triangulate()
 		if (IsFaceNodraw(pFace) || pFace->numEdges < 3) continue;
 
 		int16_t dispIdx = pFace->dispInfo;
-		if (dispIdx == -1) { // Not a displacement
+		if (true || dispIdx == -1) { // Not a displacement
 			mNumTris += pFace->numEdges - 2;
 		} else {
 			if (dispIdx < 0 || dispIdx >= mNumDispInfos) return false;
@@ -187,8 +187,22 @@ bool BSPMap::Triangulate()
 		return false;
 	}
 
-	// Read data into buffers
+	// Offsets
 	size_t triIdx = 0U;
+
+	float* p0 = mpPositions;
+	float* p1 = mpPositions + 3U;
+	float* p2 = mpPositions + 6U;
+
+	float* n = mpNormals;
+	float* t = mpTangents;
+	float* b = mpBinormals;
+
+	float* uv0 = mpUVs;
+	float* uv1 = mpUVs + 2U;
+	float* uv2 = mpUVs + 4U;
+
+	// Read data into buffers
 	for (const Face* pFace = mpFaces; pFace < mpFaces + mNumFaces; pFace++) {
 		if (IsFaceNodraw(pFace) || pFace->numEdges < 3) continue;
 
@@ -212,20 +226,9 @@ bool BSPMap::Triangulate()
 		// Get displacement index
 		int16_t dispIdx = pFace->dispInfo;
 
-		// Offsets
-		float* p0 = mpPositions;
-		float* p1 = mpPositions + 3U;
-		float* p2 = mpPositions + 6U;
+		
 
-		float* n = mpNormals;
-		float* t = mpTangents;
-		float* b = mpBinormals;
-
-		float* uv0 = mpUVs;
-		float* uv1 = mpUVs + 2U;
-		float* uv2 = mpUVs + 4U;
-
-		if (dispIdx == -1) { // Triangulate face
+		if (true || dispIdx == -1) { // Triangulate face
 			// Get root vertex
 			float root[3], rootUV[2];
 			GetSurfEdgeVerts(pFace->firstEdge, root);
