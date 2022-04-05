@@ -223,20 +223,6 @@ bool BSPMap::Triangulate()
 	for (const Face* pFace = mpFaces; pFace < mpFaces + mNumFaces; pFace++) {
 		if (IsFaceNodraw(pFace) || pFace->numEdges < 3) continue;
 
-		// Get normal
-		int16_t planeIdx = pFace->planeNum;
-		if (planeIdx < 0 || planeIdx > mNumPlanes) {
-			FreeAll();
-			return false;
-		}
-
-		Vector normal = mpPlanes[planeIdx].normal;
-		if (pFace->side != 0) {
-			normal.x = -normal.x;
-			normal.y = -normal.y;
-			normal.z = -normal.z;
-		}
-
 		// Get texture index
 		uint32_t texIdx = pFace->texInfo;
 
