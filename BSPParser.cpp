@@ -23,6 +23,13 @@ inline void Orthogonalise(float* v, const float* basis)
 	v[2] /= length;
 }
 
+inline void Cross(const float* a, const float* b, float* out)
+{
+	out[0] = a[1] * b[2] - a[2] * b[1];
+	out[1] = a[2] * b[0] - a[0] * b[2];
+	out[2] = a[0] * b[1] - a[1] * b[0];
+}
+
 inline void NegCross(const float* a, const float* b, float* out)
 {
 	out[0] = a[2] * b[1] - a[1] * b[2];
@@ -30,10 +37,18 @@ inline void NegCross(const float* a, const float* b, float* out)
 	out[2] = a[1] * b[0] - a[0] * b[1];
 }
 
-void CalcTangentBinormal(
+inline void Normalise(float v[3])
+{
+	float len = sqrtf(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+	v[0] /= len;
+	v[1] /= len;
+	v[2] /= len;
+}
+
+void CalcTBN(
 	const float* p0, const float* p1, const float* p2,
 	const float* uv0, const float* uv1, const float* uv2,
-	const float* n,	float* t, float* b
+	float* n, float* t, float* b
 )
 {
 	float edge0[3] = { p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2] };
@@ -48,6 +63,8 @@ void CalcTangentBinormal(
 	t[1] = f * (dUV1[1] * edge0[1] - dUV0[1] * edge1[1]);
 	t[2] = f * (dUV1[1] * edge0[2] - dUV0[1] * edge1[2]);
 
+	Cross(edge0, edge1, n);
+	Normalise(n);
 	Orthogonalise(t, n);
 	NegCross(n, t, b);
 }
@@ -58,7 +75,7 @@ bool BSPMap::IsFaceNodraw(const Face* pFace) const
 		pFace->texInfo < 0 ||
 		(
 			mpTexInfos[pFace->texInfo].flags &
-			static_cast<int32_t>(SURF::SKY2D | SURF::SKY | SURF::NODRAW | SURF::SKIP | SURF::HITBOX | SURF::TRIGGER)
+			static_cast<int32_t>(SURF::SKY2D | SURF::SKY | SURF::NODRAW | SURF::SKIP | SURF::HITBOX | SURF::TRIGGER | SURF::WARP)
 		) != 0
 	);
 }
@@ -258,16 +275,14 @@ bool BSPMap::Triangulate()
 					return false;
 				}
 
-				// Add normal and compute tangent/bitangent
-				memcpy(n, &normal, 3U * sizeof(float));
-				memcpy(n + 3U, &normal, 3U * sizeof(float));
-				memcpy(n + 6U, &normal, 3U * sizeof(float));
-
-				CalcTangentBinormal(
+				// Compute normal/tangent/bitangent
+				CalcTBN(
 					p0, p1, p2,
 					uv0, uv1, uv2,
 					n, t, b
 				);
+				memcpy(n + 3U, n, 3U * sizeof(float));
+				memcpy(n + 6U, n, 3U * sizeof(float));
 				memcpy(t + 3U, t, 3U * sizeof(float));
 				memcpy(t + 6U, t, 3U * sizeof(float));
 				memcpy(b + 3U, b, 3U * sizeof(float));
@@ -283,9 +298,9 @@ bool BSPMap::Triangulate()
 				p1 += 3U * 3U;
 				p2 += 3U * 3U;
 
-				n += 3U;
-				t += 3U;
-				b += 3U;
+				n += 3U * 3U;
+				t += 3U * 3U;
+				b += 3U * 3U;
 
 				uv0 += 3U * 2U;
 				uv1 += 3U * 2U;
@@ -361,8 +376,8 @@ bool BSPMap::Triangulate()
 					// Write tris
 					for (size_t offset = 3U; offset <= 6U; offset += 3U) {
 						memcpy(p0, dispVerts, 3U * sizeof(float));
-						memcpy(p1, dispVerts + offset, 3U * sizeof(float));
-						memcpy(p2, dispVerts + offset + 3U, 3U * sizeof(float));
+						memcpy(mClockwise ? p1 : p2, dispVerts + offset, 3U * sizeof(float));
+						memcpy(mClockwise ? p2 : p1, dispVerts + offset + 3U, 3U * sizeof(float));
 
 						if (
 							!CalcUVs(texIdx, p0, uv0) ||
@@ -373,20 +388,25 @@ bool BSPMap::Triangulate()
 							return false;
 						}
 
-						memcpy(n, &normal, 3U * sizeof(float));
-						CalcTangentBinormal(
+						CalcTBN(
 							p0, p1, p2,
 							uv0, uv1, uv2,
 							n, t, b
 						);
+						memcpy(n + 3U, n, 3U * sizeof(float));
+						memcpy(n + 6U, n, 3U * sizeof(float));
+						memcpy(t + 3U, t, 3U * sizeof(float));
+						memcpy(t + 6U, t, 3U * sizeof(float));
+						memcpy(b + 3U, b, 3U * sizeof(float));
+						memcpy(b + 6U, b, 3U * sizeof(float));
 
 						p0 += 3U * 3U;
 						p1 += 3U * 3U;
 						p2 += 3U * 3U;
 
-						n += 3U;
-						t += 3U;
-						b += 3U;
+						n += 3U * 3U;
+						t += 3U * 3U;
+						b += 3U * 3U;
 
 						uv0 += 3U * 2U;
 						uv1 += 3U * 2U;
