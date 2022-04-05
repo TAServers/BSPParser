@@ -93,6 +93,14 @@ namespace BSPStructs {
 		int32_t viewWidth, viewHeight;
 	};
 
+	struct Model
+	{
+		Vector mins, maxs;
+		Vector origin;
+		int32_t headNode;
+		int32_t firstFace, numFaces;
+	};
+
 	struct DispInfo
 	{
 		Vector startPosition;

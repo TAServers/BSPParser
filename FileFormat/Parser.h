@@ -71,6 +71,12 @@ namespace BSPParser
 	bool ParseLump(
 		const uint8_t* pData, const size_t size,
 		const BSPStructs::Header* pHeader,
+		const BSPStructs::Model** pArray, size_t* pLength
+	);
+
+	bool ParseLump(
+		const uint8_t* pData, const size_t size,
+		const BSPStructs::Header* pHeader,
 		const BSPStructs::DispInfo** pArray, size_t* pLength
 	);
 

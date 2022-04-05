@@ -51,11 +51,14 @@ private:
 	const char* mpTexDataStringData;
 	size_t mNumTexDataStringDatas = 0U;
 
+	const BSPStructs::Model* mpModels;
+	size_t mNumModels = 0U;
+
 	const BSPStructs::DispInfo* mpDispInfos;
-	size_t mNumDispInfos;
+	size_t mNumDispInfos = 0U;
 
 	const BSPStructs::DispVert* mpDispVerts;
-	size_t mNumDispVerts;
+	size_t mNumDispVerts = 0U;
 
 	// Triangulation
 

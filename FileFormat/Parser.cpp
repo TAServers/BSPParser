@@ -178,6 +178,19 @@ bool BSPParser::ParseLump(
 bool BSPParser::ParseLump(
 	const uint8_t* pData, const size_t size,
 	const Header* pHeader,
+	const Model** pArray, size_t* pLength
+) {
+	return ParseLumpBase(
+		pData, size,
+		pHeader,
+		pArray, pLength,
+		LUMP::MODELS, MAX_MAP_MODELS
+	);
+}
+
+bool BSPParser::ParseLump(
+	const uint8_t* pData, const size_t size,
+	const Header* pHeader,
 	const DispInfo** pArray, size_t* pLength
 ) {
 	return ParseLumpBase(

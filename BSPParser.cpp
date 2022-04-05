@@ -75,7 +75,12 @@ bool BSPMap::IsFaceNodraw(const Face* pFace) const
 		pFace->texInfo < 0 ||
 		(
 			mpTexInfos[pFace->texInfo].flags &
-			static_cast<int32_t>(SURF::SKY2D | SURF::SKY | SURF::NODRAW | SURF::SKIP | SURF::HITBOX | SURF::TRIGGER | SURF::WARP)
+			static_cast<int32_t>(
+				SURF::NODRAW |
+				SURF::SKIP |
+				SURF::HITBOX |
+				SURF::TRIGGER
+			)
 		) != 0
 	);
 }
@@ -167,9 +172,13 @@ bool BSPMap::GenerateDispVert(
 
 bool BSPMap::Triangulate()
 {
+	// Get worldspawn faces
+	const Face* firstFace = mpFaces + mpModels[0].firstFace;
+	int32_t numFaces = mpModels[0].numFaces;
+
 	// Calculate number of tris in the map
 	mNumTris = 0U;
-	for (const Face* pFace = mpFaces; pFace < mpFaces + mNumFaces; pFace++) {
+	for (const Face* pFace = firstFace; pFace < firstFace + numFaces; pFace++) {
 		if (IsFaceNodraw(pFace) || pFace->numEdges < 3) continue;
 
 		int16_t dispIdx = pFace->dispInfo;
@@ -220,7 +229,7 @@ bool BSPMap::Triangulate()
 	float* uv2 = mpUVs + 4U;
 
 	// Read data into buffers
-	for (const Face* pFace = mpFaces; pFace < mpFaces + mNumFaces; pFace++) {
+	for (const Face* pFace = firstFace; pFace < firstFace + numFaces; pFace++) {
 		if (IsFaceNodraw(pFace) || pFace->numEdges < 3) continue;
 
 		// Get texture index
@@ -448,6 +457,7 @@ BSPMap::BSPMap(
 			&mpTexDataStringData, &mNumTexDataStringDatas,
 			LUMP::TEXDATA_STRING_DATA, MAX_MAP_TEXDATA_STRING_DATA
 		) ||
+		!ParseLump(&mpModels, &mNumModels) ||
 		!ParseLump(&mpDispInfos, &mNumDispInfos) ||
 		!ParseLump(&mpDispVerts, &mNumDispVerts)
 	) {
