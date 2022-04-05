@@ -58,7 +58,7 @@ bool BSPMap::IsFaceNodraw(const Face* pFace) const
 		pFace->texInfo < 0 ||
 		(
 			mpTexInfos[pFace->texInfo].flags &
-			static_cast<int32_t>(SURF::SKY2D | SURF::SKY | SURF::NODRAW | SURF::SKIP | SURF::HITBOX)
+			static_cast<int32_t>(SURF::SKY2D | SURF::SKY | SURF::NODRAW | SURF::SKIP | SURF::HITBOX | SURF::TRIGGER)
 		) != 0
 	);
 }
@@ -135,10 +135,10 @@ bool BSPMap::GenerateDispVert(
 	float ty = static_cast<float>(y) / static_cast<float>(size);
 	float sx = 1.f - tx, sy = 1.f - ty;
 
-	const float* c0 = corners + ((0 + firstCorner) & 3);
-	const float* c1 = corners + ((1 + firstCorner) & 3);
-	const float* c2 = corners + ((2 + firstCorner) & 3);
-	const float* c3 = corners + ((3 + firstCorner) & 3);
+	const float* c0 = corners + ((0 + firstCorner) & 3) * 3;
+	const float* c1 = corners + ((1 + firstCorner) & 3) * 3;
+	const float* c2 = corners + ((2 + firstCorner) & 3) * 3;
+	const float* c3 = corners + ((3 + firstCorner) & 3) * 3;
 
 	for (size_t i = 0; i < 3; i++) {
 		pVert[i] = (c1[i] * sx + c2[i] * tx) * ty + (c0[i] * sx + c3[i] * tx) * sy;
@@ -156,10 +156,10 @@ bool BSPMap::Triangulate()
 		if (IsFaceNodraw(pFace) || pFace->numEdges < 3) continue;
 
 		int16_t dispIdx = pFace->dispInfo;
-		if (true || dispIdx == -1) { // Not a displacement
+		if (dispIdx < 0) { // Not a displacement
 			mNumTris += pFace->numEdges - 2;
 		} else {
-			if (dispIdx < 0 || dispIdx >= mNumDispInfos) return false;
+			if (dispIdx >= mNumDispInfos) return false;
 
 			int32_t size = 1 << mpDispInfos[dispIdx].power;
 			mNumTris += size * size * 2;
@@ -226,9 +226,7 @@ bool BSPMap::Triangulate()
 		// Get displacement index
 		int16_t dispIdx = pFace->dispInfo;
 
-		
-
-		if (true || dispIdx == -1) { // Triangulate face
+		if (dispIdx < 0) { // Triangulate face
 			// Get root vertex
 			float root[3], rootUV[2];
 			GetSurfEdgeVerts(pFace->firstEdge, root);
@@ -311,7 +309,7 @@ bool BSPMap::Triangulate()
 					FreeAll();
 					return false;
 				}
-				memcpy(corners + (surfEdgeIdx - pFace->firstEdge), vert, 3U * sizeof(float));
+				memcpy(corners + (surfEdgeIdx - pFace->firstEdge) * 3U, vert, 3U * sizeof(float));
 
 				float distVec[3] = {
 					pDispInfo->startPosition.x - vert[0],
