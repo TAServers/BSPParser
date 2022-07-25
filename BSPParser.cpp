@@ -322,7 +322,7 @@ bool BSPMap::Triangulate()
 
 		// Get texture index
 		int16_t texIdx = pFace->texInfo;
-		if (texIdx < 0) continue;
+		if (texIdx < 0 || texIdx >= mNumTexInfos) continue;
 
 		// Get displacement index
 		int16_t dispIdx = pFace->dispInfo;
