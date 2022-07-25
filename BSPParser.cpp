@@ -279,7 +279,7 @@ bool BSPMap::Triangulate()
 	mpTangents   = reinterpret_cast<float*>(malloc(sizeof(float) * 3U * 3U * mNumTris));
 	mpBinormals  = reinterpret_cast<float*>(malloc(sizeof(float) * 3U * 3U * mNumTris));
 	mpUVs        = reinterpret_cast<float*>(malloc(sizeof(float) * 2U * 3U * mNumTris));
-	mpTexIndices = reinterpret_cast<uint32_t*>(malloc(sizeof(uint32_t) * mNumTris));
+	mpTexIndices = reinterpret_cast<int16_t*>(malloc(sizeof(int16_t) * mNumTris));
 
 	if (
 		mpPositions  == nullptr ||
