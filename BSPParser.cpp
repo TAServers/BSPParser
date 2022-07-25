@@ -261,6 +261,9 @@ bool BSPMap::Triangulate()
 	for (const Face* pFace = firstFace; pFace < firstFace + numFaces; pFace++) {
 		if (IsFaceNodraw(pFace) || pFace->numEdges < 3) continue;
 
+		int16_t texIdx = pFace->texInfo;
+		if (texIdx < 0 || texIdx >= mNumTexInfos) continue;
+
 		int16_t dispIdx = pFace->dispInfo;
 		if (dispIdx < 0) { // Not a displacement
 			mNumTris += pFace->numEdges - 2;
@@ -544,6 +547,9 @@ bool BSPMap::Triangulate()
 							t0, t1, t2,
 							b0, b1, b2
 						);
+
+						// Add texture index
+						mpTexIndices[triIdx] = texIdx;
 
 						// Increment
 						triIdx++;
