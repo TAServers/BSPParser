@@ -70,7 +70,7 @@ private:
 	float* mpPositions;
 	float* mpNormals, * mpTangents, * mpBinormals;
 	float* mpUVs;
-	uint32_t* mpTexIndices;
+	int16_t* mpTexIndices;
 
 	template<class LumpDatatype>
 	bool ParseLump(const LumpDatatype** pArray, size_t* pLength)
@@ -87,7 +87,7 @@ private:
 	void FreeAll();
 
 	bool CalcUVs(
-		const int32_t texInfoIdx, const float* pos,
+		const int16_t texInfoIdx, const float* pos,
 		float* pUVs
 	) const;
 
@@ -112,7 +112,7 @@ public:
 	bool IsValid() const;
 
 	// Returns relevant texture information for an index in the TexInfo lump
-	BSPTexture GetTexture(const uint32_t index) const;
+	BSPTexture GetTexture(const int16_t index) const;
 
 	// Gets the number of triangles in the triangulated BSP data
 	size_t GetNumTris() const;
@@ -132,6 +132,6 @@ public:
 	// Returns a const pointer to the vertex UVs as raw float data
 	const float* GetUVs() const;
 
-	// Returns a const pointer to the triangle TexInfo indices as an array of uint32_t
-	const uint32_t* GetTriTextures() const;
+	// Returns a const pointer to the triangle TexInfo indices as an array of int16_t
+	const int16_t* GetTriTextures() const;
 };

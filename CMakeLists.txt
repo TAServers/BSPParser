@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 3.20)
+
+project("BSPParser" CXX)
 set(CMAKE_CXX_STANDARD 17)
 
-project("BSPParser")
 add_library(
 	${PROJECT_NAME}
 	"BSPParser.cpp"

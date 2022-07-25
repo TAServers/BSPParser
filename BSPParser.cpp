@@ -177,7 +177,7 @@ void BSPMap::FreeAll()
 }
 
 bool BSPMap::CalcUVs(
-	const int32_t texInfoIdx, const float* pos,
+	const int16_t texInfoIdx, const float* pos,
 	float* pUVs
 ) const
 {
@@ -321,7 +321,8 @@ bool BSPMap::Triangulate()
 		if (IsFaceNodraw(pFace) || pFace->numEdges < 3) continue;
 
 		// Get texture index
-		uint32_t texIdx = pFace->texInfo;
+		int16_t texIdx = pFace->texInfo;
+		if (texIdx < 0) continue;
 
 		// Get displacement index
 		int16_t dispIdx = pFace->dispInfo;
@@ -330,7 +331,10 @@ bool BSPMap::Triangulate()
 			// Get root vertex
 			float root[3], rootUV[2];
 			GetSurfEdgeVerts(pFace->firstEdge, root);
-			CalcUVs(pFace->texInfo, root, rootUV);
+			if (!CalcUVs(pFace->texInfo, root, rootUV)) {
+				FreeAll();
+				return false;
+			}
 
 			// For each edge (ignoring first and last)
 			for (
@@ -500,9 +504,9 @@ bool BSPMap::Triangulate()
 			) {
 				Normalise(normal);
 				if (!mClockwise) {
-					normal[0] = normal[0];
-					normal[1] = normal[1];
-					normal[2] = normal[2];
+					normal[0] = -normal[0];
+					normal[1] = -normal[1];
+					normal[2] = -normal[2];
 				}
 			}
 
@@ -634,9 +638,9 @@ BSPMap::~BSPMap()
 
 bool BSPMap::IsValid() const { return mIsValid; }
 
-BSPTexture BSPMap::GetTexture(const uint32_t index) const
+BSPTexture BSPMap::GetTexture(const int16_t index) const
 {
-	if (index >= mNumTexInfos)
+	if (index < 0 || index >= mNumTexInfos)
 		throw std::runtime_error("Texture index out of bounds");
 
 	const TexInfo* pTexInfo = mpTexInfos + index;
@@ -666,4 +670,4 @@ const float* BSPMap::GetNormals() const { return mpNormals; }
 const float* BSPMap::GetTangents() const { return mpTangents; }
 const float* BSPMap::GetBinormals() const { return mpBinormals; }
 const float* BSPMap::GetUVs() const { return mpUVs; }
-const uint32_t* BSPMap::GetTriTextures() const { return mpTexIndices; }
+const int16_t* BSPMap::GetTriTextures() const { return mpTexIndices; }
