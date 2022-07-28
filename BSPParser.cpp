@@ -161,7 +161,7 @@ bool BSPMap::IsFaceNodraw(const Face* pFace) const
 				SURF::HITBOX |
 				SURF::TRIGGER
 			)
-		) != 0
+		) != SURF::NONE
 	);
 }
 
