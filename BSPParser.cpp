@@ -55,7 +55,7 @@ void CalcNormal(
 	float edge0[3] = { p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2] };
 	float edge1[3] = { p2[0] - p0[0], p2[1] - p0[1], p2[2] - p0[2] };
 
-	Cross(edge0, edge1, n);
+	Cross(edge1, edge0, n);
 	Normalise(n);
 }
 
