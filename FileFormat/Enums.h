@@ -84,6 +84,7 @@ namespace BSPEnums {
 
 	enum class SURF : int32_t
 	{
+		NONE = 0x0,
 		LIGHT = 0x1,
 		SKY2D = 0x2,
 		SKY = 0x4,
