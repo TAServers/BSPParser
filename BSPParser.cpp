@@ -155,7 +155,7 @@ bool BSPMap::IsFaceNodraw(const Face* pFace) const
 		pFace->texInfo < 0 ||
 		(
 			mpTexInfos[pFace->texInfo].flags &
-			static_cast<int32_t>(
+			(
 				SURF::NODRAW |
 				SURF::SKIP |
 				SURF::HITBOX |

@@ -112,4 +112,15 @@ namespace BSPEnums {
 		lhs = lhs | rhs;
 		return lhs;
 	}
+
+	inline SURF operator &(SURF lhs, SURF rhs)
+	{
+		return static_cast<SURF>(static_cast<int32_t>(lhs) & static_cast<int32_t>(rhs));
+	}
+
+	inline SURF& operator &=(SURF& lhs, SURF rhs)
+	{
+		lhs = lhs & rhs;
+		return lhs;
+	}
 }

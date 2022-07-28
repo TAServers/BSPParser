@@ -6,7 +6,7 @@
 
 struct BSPTexture
 {
-	int32_t flags;
+	BSPEnums::SURF flags;
 	BSPStructs::Vector reflectivity;
 	const char* path;
 	int32_t width, height;

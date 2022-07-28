@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #include "Limits.h"
+#include "Enums.h"
 
 namespace BSPStructs {
 	constexpr int32_t IDBSPHEADER = 'V' + ('B' << 8) + ('S' << 16) + ('P' << 24);
@@ -81,7 +82,7 @@ namespace BSPStructs {
 	{
 		float textureVecs[2][4];
 		float lightmapVecs[2][4];
-		int32_t flags;
+		BSPEnums::SURF flags;
 		int32_t texData;
 	};
 
