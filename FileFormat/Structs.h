@@ -27,7 +27,35 @@ namespace BSPStructs {
 
 	struct Vector
 	{
-		float x, y, z;
+		float x = 0, y = 0, z = 0;
+
+		Vector operator+(const Vector& b) const;
+		Vector operator-() const;
+		Vector operator-(const Vector& b) const;
+		Vector operator*(const Vector& b) const;
+		Vector operator/(const Vector& b) const;
+
+		Vector& operator+=(const Vector& b);
+		Vector& operator-=(const Vector& b);
+		Vector& operator*=(const Vector& b);
+		Vector& operator/=(const Vector& b);
+
+		Vector operator+(const float& b) const;
+		Vector operator-(const float& b) const;
+		Vector operator*(const float& b) const;
+		Vector operator/(const float& b) const;
+
+		Vector& operator+=(const float& b);
+		Vector& operator-=(const float& b);
+		Vector& operator*=(const float& b);
+		Vector& operator/=(const float& b);
+
+		inline float Dot(const Vector& b) const
+		{
+			return x * b.x + y * b.y + z * b.z;
+		}
+		Vector Cross(const Vector& b) const;
+		void Normalise();
 	};
 
 	struct Plane
@@ -102,6 +130,25 @@ namespace BSPStructs {
 		int32_t firstFace, numFaces;
 	};
 
+	struct DispSubNeighbour
+	{
+		unsigned short index;
+		unsigned char orientation;
+		unsigned char span;
+		unsigned char neighbourSpan;
+	};
+
+	struct DispNeighbour
+	{
+		DispSubNeighbour subNeighbors[2];
+	};
+
+	struct DispCornerNeighbours
+	{
+		unsigned short neighbours[MAX_DISP_CORNER_NEIGHBORS];
+		unsigned char numNeighbours;
+	};
+
 	struct DispInfo
 	{
 		Vector startPosition;
@@ -118,9 +165,8 @@ namespace BSPStructs {
 		int32_t lightmapAlphaStart;
 		int32_t lightmapSamplePositionStart;
 
-		// CDispNeighbour edgeNeighbours[4]
-		// CDispCornerNeighbours cornerNeighbours[4]
-		uint8_t unused[88];
+		DispNeighbour edgeNeighbours[4];
+		DispCornerNeighbours cornerNeighbours[4];
 
 		uint32_t allowedVerts[10];
 	};

@@ -1,6 +1,8 @@
 #include "BSPParser.h"
 #include "FileFormat/Structs.h"
 
+#include "Displacements.h"
+
 #include <cstring>
 #include <stdlib.h>
 #include <cmath>
@@ -10,142 +12,35 @@
 using namespace BSPStructs;
 using namespace BSPEnums;
 
-inline float Dot(const float a[3], const float b[3])
-{
-	return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
-}
-
-inline void Cross(const float a[3], const float b[3], float out[3])
-{
-	out[0] = a[1] * b[2] - a[2] * b[1];
-	out[1] = a[2] * b[0] - a[0] * b[2];
-	out[2] = a[0] * b[1] - a[1] * b[0];
-}
-
-inline void NegCross(const float a[3], const float b[3], float out[3])
-{
-	out[0] = a[2] * b[1] - a[1] * b[2];
-	out[1] = a[0] * b[2] - a[2] * b[0];
-	out[2] = a[1] * b[0] - a[0] * b[1];
-}
-
-inline void Normalise(float v[3])
-{
-	float len = sqrtf(Dot(v, v));
-	v[0] /= len;
-	v[1] /= len;
-	v[2] /= len;
-}
-
-inline void Orthogonalise(float v[3], const float basis[3])
-{
-	float dot = Dot(v, basis);
-	v[0] -= basis[0] * dot;
-	v[1] -= basis[1] * dot;
-	v[2] -= basis[2] * dot;
-
-	Normalise(v);
-}
-
 void CalcNormal(
-	const float p0[3], const float p1[3], const float p2[3],
-	float n[3]
+	const Vector* p0, const Vector* p1, const Vector* p2,
+	Vector* n
 )
 {
-	float edge0[3] = { p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2] };
-	float edge1[3] = { p2[0] - p0[0], p2[1] - p0[1], p2[2] - p0[2] };
+	Vector edge0 = { p1->x - p0->x, p1->y - p0->y, p1->z - p0->z };
+	Vector edge1 = { p2->x - p0->x, p2->y - p0->y, p2->z - p0->z };
 
-	Cross(edge1, edge0, n);
-	Normalise(n);
+	*n = edge1.Cross(edge0);
+	n->Normalise();
 }
 
 void CalcTangentBinormal(
-	const float p0[3], const float p1[3], const float p2[3],
-	const float uv0[2], const float uv1[2], const float uv2[2],
-	const float n[3], float t[3], float b[3]
+	const TexInfo* pTexInfo, const Plane* pPlane,
+	const Vector* n, Vector* t, Vector* b
 )
 {
-	float edge0[3] = { p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2] };
-	float edge1[3] = { p2[0] - p0[0], p2[1] - p0[1], p2[2] - p0[2] };
+	Vector sAxis{ pTexInfo->textureVecs[0][0], pTexInfo->textureVecs[0][1], pTexInfo->textureVecs[0][2] };
+	Vector tAxis{ pTexInfo->textureVecs[1][0], pTexInfo->textureVecs[1][1], pTexInfo->textureVecs[1][2] };
 
-	float dUV0[2] = { uv1[0] - uv0[0], uv1[1] - uv0[1] };
-	float dUV1[2] = { uv2[0] - uv0[0], uv2[1] - uv0[1] };
+	*t = tAxis;
+	t->Normalise();
+	*b = n->Cross(*t);
+	b->Normalise();
+	*t = b->Cross(*n);
+	t->Normalise();
 
-	float f = 1.f / (dUV0[0] * dUV1[1] - dUV1[0] * dUV0[1]);
-
-	t[0] = f * (dUV1[1] * edge0[0] - dUV0[1] * edge1[0]);
-	t[1] = f * (dUV1[1] * edge0[1] - dUV0[1] * edge1[1]);
-	t[2] = f * (dUV1[1] * edge0[2] - dUV0[1] * edge1[2]);
-
-	Orthogonalise(t, n);
-	NegCross(n, t, b);
-}
-
-void CalcTangentBinormal(
-	const float p0[3], const float p1[3], const float p2[3],
-	const float uv0[2], const float uv1[2], const float uv2[2],
-	const float n0[3], const float n1[3], const float n2[3],
-	float t0[3], float t1[3], float t2[3],
-	float b0[3], float b1[3], float b2[3]
-)
-{
-	float edge0[3] = { p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2] };
-	float edge1[3] = { p2[0] - p0[0], p2[1] - p0[1], p2[2] - p0[2] };
-
-	float dUV0[2] = { uv1[0] - uv0[0], uv1[1] - uv0[1] };
-	float dUV1[2] = { uv2[0] - uv0[0], uv2[1] - uv0[1] };
-
-	float f = 1.f / (dUV0[0] * dUV1[1] - dUV1[0] * dUV0[1]);
-
-	float t[3] = {
-		f * (dUV1[1] * edge0[0] - dUV0[1] * edge1[0]),
-		f * (dUV1[1] * edge0[1] - dUV0[1] * edge1[1]),
-		f * (dUV1[1] * edge0[2] - dUV0[1] * edge1[2])
-	};
-
-	memcpy(t0, t, 3 * sizeof(float));
-	memcpy(t1, t, 3 * sizeof(float));
-	memcpy(t2, t, 3 * sizeof(float));
-
-	Orthogonalise(t0, n0);
-	Orthogonalise(t1, n1);
-	Orthogonalise(t2, n2);
-
-	Cross(t0, n0, b0);
-	Cross(t1, n1, b1);
-	Cross(t2, n2, b2);
-}
-
-void CalcVertWNormals(
-	const float p0[3], const float p1[3], const float p2[3],
-	float n0[3], float n1[3], float n2[3]
-) {
-	float normal[3];
-	CalcNormal(p0, p1, p2, normal);
-
-	float p1p0[3] = { p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2] };
-	float p2p0[3] = { p2[0] - p0[0], p2[1] - p0[1], p2[2] - p0[2] };
-	float p2p1[3] = { p2[0] - p1[0], p2[1] - p1[1], p2[2] - p1[2] };
-	float p0p1[3] = { p0[0] - p1[0], p0[1] - p1[1], p0[2] - p1[2] };
-	float p0p2[3] = { p0[0] - p2[0], p0[1] - p2[1], p0[2] - p2[2] };
-	float p1p2[3] = { p1[0] - p2[0], p1[1] - p2[1], p1[2] - p2[2] };
-
-	// TODO: No need to compute the length twice for each inverted edge
-	Normalise(p1p0);
-	Normalise(p2p0);
-	Normalise(p2p1);
-	Normalise(p0p1);
-	Normalise(p0p2);
-	Normalise(p1p2);
-
-	float a0 = acosf(Dot(p1p0, p2p0));
-	float a1 = acosf(Dot(p2p1, p0p1));
-	float a2 = acosf(Dot(p0p2, p1p2));
-
-	for (int i = 0; i < 3; i++) {
-		n0[i] += normal[i] * a0;
-		n1[i] += normal[i] * a1;
-		n2[i] += normal[i] * a2;
+	if (pPlane->normal.Dot(sAxis.Cross(tAxis)) > 0.0f) {
+		*b *= Vector{ -1, -1, -1 };
 	}
 }
 
@@ -177,7 +72,7 @@ void BSPMap::FreeAll()
 }
 
 bool BSPMap::CalcUVs(
-	const int16_t texInfoIdx, const float* pos,
+	const int16_t texInfoIdx, const Vector* pos,
 	float* pUVs
 ) const
 {
@@ -190,8 +85,8 @@ bool BSPMap::CalcUVs(
 	const float* s = pTexInfo->textureVecs[0];
 	const float* t = pTexInfo->textureVecs[1];
 
-	pUVs[0] = s[0] * pos[0] + s[1] * pos[1] + s[2] * pos[2] + s[3];
-	pUVs[1] = t[0] * pos[0] + t[1] * pos[1] + t[2] * pos[2] + t[3];
+	pUVs[0] = s[0] * pos->x + s[1] * pos->y + s[2] * pos->z + s[3];
+	pUVs[1] = t[0] * pos->x + t[1] * pos->y + t[2] * pos->z + t[3];
 
 	pUVs[0] /= static_cast<float>(pTexData->width);
 	pUVs[1] /= static_cast<float>(pTexData->height);
@@ -199,7 +94,7 @@ bool BSPMap::CalcUVs(
 	return true;
 }
 
-bool BSPMap::GetSurfEdgeVerts(const int32_t index, float* pVertA, float* pVertB) const
+bool BSPMap::GetSurfEdgeVerts(const int32_t index, Vector* pVertA, Vector* pVertB) const
 {
 	if (index < 0 || index >= mNumSurfEdges) return false;
 
@@ -213,39 +108,9 @@ bool BSPMap::GetSurfEdgeVerts(const int32_t index, float* pVertA, float* pVertB)
 
 	if (edgeIdx < 0) std::swap(iA, iB);
 
-	memcpy(pVertA, mpVertices + iA, 3 * sizeof(float));
+	memcpy(pVertA, mpVertices + iA, sizeof(Vector));
 	if (pVertB != nullptr)
-		memcpy(pVertB, mpVertices + iB, 3 * sizeof(float));
-
-	return true;
-}
-
-bool BSPMap::GenerateDispVert(
-	const int32_t dispVertStart,
-	int32_t x, int32_t y, int32_t size,
-	const float* corners, int32_t firstCorner,
-	float* pVert
-) const
-{
-	int32_t offset = dispVertStart + x + y * (size + 1);
-	if (offset < 0 || offset >= mNumDispVerts) {
-		return false;
-	}
-	const DispVert* pDispVert = mpDispVerts + offset;
-
-	float tx = static_cast<float>(x) / static_cast<float>(size);
-	float ty = static_cast<float>(y) / static_cast<float>(size);
-	float sx = 1.f - tx, sy = 1.f - ty;
-
-	const float* c0 = corners + ((0 + firstCorner) & 3) * 3;
-	const float* c1 = corners + ((1 + firstCorner) & 3) * 3;
-	const float* c2 = corners + ((2 + firstCorner) & 3) * 3;
-	const float* c3 = corners + ((3 + firstCorner) & 3) * 3;
-
-	for (int i = 0; i < 3; i++) {
-		pVert[i] = (c1[i] * sx + c2[i] * tx) * ty + (c0[i] * sx + c3[i] * tx) * sy;
-		pVert[i] += reinterpret_cast<const float*>(&pDispVert->vec)[i] * pDispVert->dist;
-	}
+		memcpy(pVertB, mpVertices + iB, sizeof(Vector));
 
 	return true;
 }
@@ -277,10 +142,10 @@ bool BSPMap::Triangulate()
 	if (mNumTris == 0U) return false;
 
 	// malloc buffers
-	mpPositions  = reinterpret_cast<float*>(malloc(sizeof(float) * 3U * 3U * mNumTris));
-	mpNormals    = reinterpret_cast<float*>(malloc(sizeof(float) * 3U * 3U * mNumTris));
-	mpTangents   = reinterpret_cast<float*>(malloc(sizeof(float) * 3U * 3U * mNumTris));
-	mpBinormals  = reinterpret_cast<float*>(malloc(sizeof(float) * 3U * 3U * mNumTris));
+	mpPositions  = reinterpret_cast<Vector*>(malloc(sizeof(Vector) * 3U * mNumTris));
+	mpNormals    = reinterpret_cast<Vector*>(malloc(sizeof(Vector) * 3U * mNumTris));
+	mpTangents   = reinterpret_cast<Vector*>(malloc(sizeof(Vector) * 3U * mNumTris));
+	mpBinormals  = reinterpret_cast<Vector*>(malloc(sizeof(Vector) * 3U * mNumTris));
 	mpUVs        = reinterpret_cast<float*>(malloc(sizeof(float) * 2U * 3U * mNumTris));
 	mpTexIndices = reinterpret_cast<int16_t*>(malloc(sizeof(int16_t) * mNumTris));
 
@@ -299,21 +164,21 @@ bool BSPMap::Triangulate()
 	// Offsets
 	size_t triIdx = 0U;
 
-	float* p0 = mpPositions;
-	float* p1 = mpPositions + 3U;
-	float* p2 = mpPositions + 6U;
+	Vector* p0 = mpPositions;
+	Vector* p1 = mpPositions + 1U;
+	Vector* p2 = mpPositions + 2U;
 
-	float* n0 = mpNormals;
-	float* n1 = mpNormals + 3U;
-	float* n2 = mpNormals + 6U;
+	Vector* n0 = mpNormals;
+	Vector* n1 = mpNormals + 1U;
+	Vector* n2 = mpNormals + 2U;
 
-	float* t0 = mpTangents;
-	float* t1 = mpTangents + 3U;
-	float* t2 = mpTangents + 6U;
+	Vector* t0 = mpTangents;
+	Vector* t1 = mpTangents + 1U;
+	Vector* t2 = mpTangents + 2U;
 
-	float* b0 = mpBinormals;
-	float* b1 = mpBinormals + 3U;
-	float* b2 = mpBinormals + 6U;
+	Vector* b0 = mpBinormals;
+	Vector* b1 = mpBinormals + 1U;
+	Vector* b2 = mpBinormals + 2U;
 
 	float* uv0 = mpUVs;
 	float* uv1 = mpUVs + 2U;
@@ -332,9 +197,10 @@ bool BSPMap::Triangulate()
 
 		if (dispIdx < 0) { // Triangulate face
 			// Get root vertex
-			float root[3], rootUV[2];
-			GetSurfEdgeVerts(pFace->firstEdge, root);
-			if (!CalcUVs(pFace->texInfo, root, rootUV)) {
+			Vector root;
+			float rootUV[2];
+			GetSurfEdgeVerts(pFace->firstEdge, &root);
+			if (!CalcUVs(pFace->texInfo, &root, rootUV)) {
 				FreeAll();
 				return false;
 			}
@@ -346,7 +212,7 @@ bool BSPMap::Triangulate()
 				surfEdgeIdx++
 			) {
 				// Add vertices to positions
-				memcpy(p0, root, 3U * sizeof(float));
+				*p0 = root;
 				if (
 					(mClockwise && !GetSurfEdgeVerts(surfEdgeIdx, p1, p2)) ||
 					(!mClockwise && !GetSurfEdgeVerts(surfEdgeIdx, p2, p1))
@@ -368,16 +234,15 @@ bool BSPMap::Triangulate()
 				// Compute normal/tangent/bitangent
 				CalcNormal(p0, p1, p2, n0);
 				CalcTangentBinormal(
-					p0, p1, p2,
-					uv0, uv1, uv2,
+					mpTexInfos + texIdx, mpPlanes + pFace->planeNum,
 					n0, t0, b0
 				);
-				memcpy(n1, n0, 3U * sizeof(float));
-				memcpy(n2, n0, 3U * sizeof(float));
-				memcpy(t1, t0, 3U * sizeof(float));
-				memcpy(t2, t0, 3U * sizeof(float));
-				memcpy(b1, b0, 3U * sizeof(float));
-				memcpy(b2, b0, 3U * sizeof(float));
+				*n1 = *n0;
+				*n2 = *n0;
+				*t1 = *t0;
+				*t2 = *t0;
+				*b1 = *b0;
+				*b2 = *b0;
 
 				// Add texture index
 				mpTexIndices[triIdx] = texIdx;
@@ -385,31 +250,31 @@ bool BSPMap::Triangulate()
 				// Increment
 				triIdx++;
 
-				p0 += 3U * 3U;
-				p1 += 3U * 3U;
-				p2 += 3U * 3U;
+				p0 += 3U;
+				p1 += 3U;
+				p2 += 3U;
 
-				n0 += 3U * 3U;
-				n1 += 3U * 3U;
-				n2 += 3U * 3U;
+				n0 += 3U;
+				n1 += 3U;
+				n2 += 3U;
 
-				t0 += 3U * 3U;
-				t1 += 3U * 3U;
-				t2 += 3U * 3U;
+				t0 += 3U;
+				t1 += 3U;
+				t2 += 3U;
 
-				b0 += 3U * 3U;
-				b1 += 3U * 3U;
-				b2 += 3U * 3U;
+				b0 += 3U;
+				b1 += 3U;
+				b2 += 3U;
 
 				uv0 += 3U * 2U;
 				uv1 += 3U * 2U;
 				uv2 += 3U * 2U;
 			}
-		} else { // Triangulate displacement (https://github.com/Galaco/kero/blob/master/scene/loaders/bsp.go#L255)
+		} else { // Triangulate displacement
 			const DispInfo* pDispInfo = mpDispInfos + dispIdx;
 			int32_t size = 1 << pDispInfo->power;
 
-			float corners[4 * 3];
+			Vector corners[4];
 			int32_t firstCorner = 0;
 			float firstCornerDist2 = std::numeric_limits<float>::max();
 
@@ -418,113 +283,73 @@ bool BSPMap::Triangulate()
 				surfEdgeIdx < pFace->firstEdge + pFace->numEdges;
 				surfEdgeIdx++
 			) {
-				float vert[3];
-				if (!GetSurfEdgeVerts(surfEdgeIdx, vert)) {
+				Vector vert;
+				if (!GetSurfEdgeVerts(surfEdgeIdx, &vert)) {
 					FreeAll();
 					return false;
 				}
-				memcpy(corners + (surfEdgeIdx - pFace->firstEdge) * 3U, vert, 3U * sizeof(float));
+				corners[surfEdgeIdx - pFace->firstEdge] = vert;
 
-				float distVec[3] = {
-					pDispInfo->startPosition.x - vert[0],
-					pDispInfo->startPosition.y - vert[1],
-					pDispInfo->startPosition.z - vert[2]
-				};
-				float dist2 = distVec[0] * distVec[0] + distVec[1] * distVec[1] + distVec[2] * distVec[2];
+				Vector distVec = pDispInfo->startPosition - vert;
+				float dist2 = distVec.Dot(distVec);
 				if (dist2 < firstCornerDist2) {
 					firstCorner = surfEdgeIdx - pFace->firstEdge;
 					firstCornerDist2 = dist2;
 				}
 			}
 
-			float* dispVerts       = new float[(size + 1) * (size + 1) * 3];
-			float* dispVertNormals = new float[(size + 1) * (size + 1) * 3];
+			// Reorder corners
+			{
+				Vector tmpPoints[4];
+				for (int i = 0; i < 4; i++) {
+					tmpPoints[i] = corners[i];
+				}
 
-			for (int32_t x = 0; x < size; x++) {
-				for (int32_t y = 0; y < size; y++) {
-					int32_t a = y * (size + 1) * 3 + x * 3;
-					int32_t b = (y + 1) * (size + 1) * 3 + x * 3;
-					int32_t c = (y + 1) * (size + 1) * 3 + (x + 1) * 3;
-					int32_t d = y * (size + 1) * 3 + (x + 1) * 3;
-					
-					// Calculate displacement vertices
-					// TOOD: This could be optimised to only generate each vert once with some conditions
-					if (
-						!GenerateDispVert(
-							pDispInfo->dispVertStart,
-							x, y, size,
-							corners, firstCorner,
-							dispVerts + a
-						) ||
-						!GenerateDispVert(
-							pDispInfo->dispVertStart,
-							x, y + 1, size,
-							corners, firstCorner,
-							dispVerts + b
-						) ||
-						!GenerateDispVert(
-							pDispInfo->dispVertStart,
-							x + 1, y + 1, size,
-							corners, firstCorner,
-							dispVerts + c
-						) ||
-						!GenerateDispVert(
-							pDispInfo->dispVertStart,
-							x + 1, y, size,
-							corners, firstCorner,
-							dispVerts + d
-						)
-					) {
-						FreeAll();
-						return false;
-					}
-
-					// Add tris to vertex normals
-					CalcVertWNormals(
-						dispVerts + a,
-						dispVerts + b,
-						dispVerts + c,
-						dispVertNormals + a,
-						dispVertNormals + b,
-						dispVertNormals + c
-					);
-					CalcVertWNormals(
-						dispVerts + a,
-						dispVerts + c,
-						dispVerts + d,
-						dispVertNormals + a,
-						dispVertNormals + c,
-						dispVertNormals + d
-					);
+				for (int i = 0; i < 4; i++) {
+					corners[i] = tmpPoints[(i + firstCorner) % 4];
 				}
 			}
 
-			// Normalise vert normals
-			for (
-				float* normal = dispVertNormals;
-				normal < dispVertNormals + (size + 1) * (size + 1) * 3;
-				normal += 3
-			) {
-				Normalise(normal);
-				if (!mClockwise) {
-					normal[0] = -normal[0];
-					normal[1] = -normal[1];
-					normal[2] = -normal[2];
-				}
-			}
+			Vector* dispVerts         = new Vector[(size + 1) * (size + 1)];
+			Vector* dispVertNormals   = new Vector[(size + 1) * (size + 1)];
+			Vector* dispVertTangents  = new Vector[(size + 1) * (size + 1)];
+			Vector* dispVertBinormals = new Vector[(size + 1) * (size + 1)];
+
+			Displacements::GenerateDispSurf(pDispInfo, mpDispVerts + pDispInfo->dispVertStart, corners, dispVerts);
+			Displacements::GenerateDispSurfNormals(pDispInfo, dispVerts, dispVertNormals);
+			Displacements::GenerateDispSurfTangentSpaces(
+				pDispInfo, mpTexInfos + texIdx, mpPlanes + pFace->planeNum,
+				dispVerts, dispVertNormals,
+				dispVertTangents, dispVertBinormals
+			);
 
 			// Write tris
 			for (int32_t x = 0; x < size; x++) {
 				for (int32_t y = 0; y < size; y++) {
-					int32_t a = y * (size + 1) * 3 + x * 3;
-					int32_t b = (y + 1) * (size + 1) * 3 + x * 3;
-					int32_t c = (y + 1) * (size + 1) * 3 + (x + 1) * 3;
-					int32_t d = y * (size + 1) * 3 + (x + 1) * 3;
+					int32_t a = y * (size + 1) + x;
+					int32_t b = (y + 1) * (size + 1) + x;
+					int32_t c = (y + 1) * (size + 1) + (x + 1);
+					int32_t d = y * (size + 1) + (x + 1);
 
 					for (int tri = 0; tri < 2; tri++) {
-						memcpy(p0, dispVerts + a, 3U * sizeof(float));
-						memcpy(mClockwise ? p1 : p2, dispVerts + (tri == 0 ? b : c), 3U * sizeof(float));
-						memcpy(mClockwise ? p2 : p1, dispVerts + (tri == 0 ? c : d), 3U * sizeof(float));
+						int32_t i0 = a, i1 = tri == 0 ? b : c, i2 = tri == 0 ? c : d;
+						if (!mClockwise) std::swap(i1, i2);
+
+						*p0 = dispVerts[i0];
+						*p1 = dispVerts[i1];
+						*p2 = dispVerts[i2];
+
+						*n0 = dispVertNormals[i0];
+						*n1 = dispVertNormals[i1];
+						*n2 = dispVertNormals[i2];
+
+						*t0 = dispVertTangents[i0];
+						*t1 = dispVertTangents[i1];
+						*t2 = dispVertTangents[i2];
+
+						*b0 = dispVertBinormals[i0];
+						*b1 = dispVertBinormals[i1];
+						*b2 = dispVertBinormals[i2];
 
 						if (
 							!CalcUVs(texIdx, p0, uv0) ||
@@ -535,40 +360,27 @@ bool BSPMap::Triangulate()
 							return false;
 						}
 
-						// Add normals/tangents/binormals
-						memcpy(n0, dispVertNormals + a, 3 * sizeof(float));
-						memcpy(mClockwise ? n1 : n2, dispVertNormals + (tri == 0 ? b : c), 3 * sizeof(float));
-						memcpy(mClockwise ? n2 : n1, dispVertNormals + (tri == 0 ? c : d), 3 * sizeof(float));
-
-						CalcTangentBinormal(
-							p0, p1, p2,
-							uv0, uv1, uv2,
-							n0, n1, n2,
-							t0, t1, t2,
-							b0, b1, b2
-						);
-
 						// Add texture index
 						mpTexIndices[triIdx] = texIdx;
 
 						// Increment
 						triIdx++;
 
-						p0 += 3U * 3U;
-						p1 += 3U * 3U;
-						p2 += 3U * 3U;
+						p0 += 3U;
+						p1 += 3U;
+						p2 += 3U;
 
-						n0 += 3U * 3U;
-						n1 += 3U * 3U;
-						n2 += 3U * 3U;
+						n0 += 3U;
+						n1 += 3U;
+						n2 += 3U;
 
-						t0 += 3U * 3U;
-						t1 += 3U * 3U;
-						t2 += 3U * 3U;
+						t0 += 3U;
+						t1 += 3U;
+						t2 += 3U;
 
-						b0 += 3U * 3U;
-						b1 += 3U * 3U;
-						b2 += 3U * 3U;
+						b0 += 3U;
+						b1 += 3U;
+						b2 += 3U;
 
 						uv0 += 3U * 2U;
 						uv1 += 3U * 2U;
@@ -577,7 +389,10 @@ bool BSPMap::Triangulate()
 				}
 			}
 
+			delete[] dispVerts;
 			delete[] dispVertNormals;
+			delete[] dispVertTangents;
+			delete[] dispVertBinormals;
 		}
 	}
 
@@ -671,9 +486,9 @@ BSPTexture BSPMap::GetTexture(const int16_t index) const
 }
 
 size_t BSPMap::GetNumTris() const { return mNumTris; }
-const float* BSPMap::GetVertices() const { return mpPositions; }
-const float* BSPMap::GetNormals() const { return mpNormals; }
-const float* BSPMap::GetTangents() const { return mpTangents; }
-const float* BSPMap::GetBinormals() const { return mpBinormals; }
+const Vector* BSPMap::GetVertices() const { return mpPositions; }
+const Vector* BSPMap::GetNormals() const { return mpNormals; }
+const Vector* BSPMap::GetTangents() const { return mpTangents; }
+const Vector* BSPMap::GetBinormals() const { return mpBinormals; }
 const float* BSPMap::GetUVs() const { return mpUVs; }
 const int16_t* BSPMap::GetTriTextures() const { return mpTexIndices; }

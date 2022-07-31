@@ -67,8 +67,8 @@ private:
 
 	size_t mNumTris = 0U;
 
-	float* mpPositions;
-	float* mpNormals, * mpTangents, * mpBinormals;
+	BSPStructs::Vector* mpPositions;
+	BSPStructs::Vector* mpNormals, * mpTangents, * mpBinormals;
 	float* mpUVs;
 	int16_t* mpTexIndices;
 
@@ -87,18 +87,11 @@ private:
 	void FreeAll();
 
 	bool CalcUVs(
-		const int16_t texInfoIdx, const float* pos,
+		const int16_t texInfoIdx, const BSPStructs::Vector* pos,
 		float* pUVs
 	) const;
 
-	bool GetSurfEdgeVerts(const int32_t index, float* pVertA, float* pVertB = nullptr) const;
-
-	bool GenerateDispVert(
-		const int32_t dispVertStart,
-		int32_t x, int32_t y, int32_t size,
-		const float* corners, int32_t firstCorner,
-		float* pVert
-	) const;
+	bool GetSurfEdgeVerts(const int32_t index, BSPStructs::Vector* pVertA, BSPStructs::Vector* pVertB = nullptr) const;
 
 	bool Triangulate();
 
@@ -117,17 +110,17 @@ public:
 	// Gets the number of triangles in the triangulated BSP data
 	size_t GetNumTris() const;
 
-	// Returns a const pointer to the vertex positions as raw float data
-	const float* GetVertices() const;
+	// Returns a const pointer to the vertex positions as Vector structs (castable to floats)
+	const BSPStructs::Vector* GetVertices() const;
 
-	// Returns a const pointer to the vertex normals as raw float data
-	const float* GetNormals() const;
+	// Returns a const pointer to the vertex normals as Vector structs (castable to floats)
+	const BSPStructs::Vector* GetNormals() const;
 
-	// Returns a const pointer to the vertex tangents as raw float data
-	const float* GetTangents() const;
+	// Returns a const pointer to the vertex tangents as Vector structs (castable to floats)
+	const BSPStructs::Vector* GetTangents() const;
 
-	// Returns a const pointer to the vertex binormals as raw float data
-	const float* GetBinormals() const;
+	// Returns a const pointer to the vertex binormals as Vector structs (castable to floats)
+	const BSPStructs::Vector* GetBinormals() const;
 
 	// Returns a const pointer to the vertex UVs as raw float data
 	const float* GetUVs() const;
