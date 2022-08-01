@@ -13,11 +13,11 @@ add_library(
 	"Displacements/Positions.cpp"
 	"Displacements/TBNGen.cpp"
 	"Displacements/NormalBlending.cpp"
+	"Displacements/SubEdgeIterator.cpp"
 )
 
 target_include_directories(
 	${PROJECT_NAME} PRIVATE
 
 	${PROJECT_SOURCE_DIR}
-	"Displacements"
 )

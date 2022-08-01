@@ -1,14 +1,14 @@
 #include "Displacements.h"
 
+using namespace Displacements;
 using namespace BSPStructs;
 
 void Displacements::GenerateDispSurf(
-	const DispInfo* pDisp, const DispVert* dispVerts,
-	const Vector corners[4],
-	Vector* pVerts
+	const DispInfo* pDispInfo, const DispVert* dispVerts,
+	const Vector corners[4], Displacement& disp
 )
 {
-	int postSpacing = (1 << pDisp->power) + 1;
+	int postSpacing = (1 << pDispInfo->power) + 1;
 	float ooInt = 1.0f / (float)(postSpacing - 1);
 
 	Vector edgeInt[2];
@@ -30,10 +30,8 @@ void Displacements::GenerateDispSurf(
 		for (int j = 0; j < postSpacing; j++) {
 			int ndx = i * postSpacing + j;
 
-			const DispVert* pDispVert = dispVerts + ndx;
-
-			pVerts[ndx] = endPts[0] + (segInt * j);
-			pVerts[ndx] += pDispVert->vec * pDispVert->dist;
+			const DispVert* pDispInfoVert = dispVerts + ndx;
+			disp.verts.push_back(endPts[0] + (segInt * j) + pDispInfoVert->vec * pDispInfoVert->dist);
 		}
 	}
 }

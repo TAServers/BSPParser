@@ -132,10 +132,12 @@ namespace BSPStructs {
 
 	struct DispSubNeighbour
 	{
-		unsigned short index;
+		unsigned short index = 0xFFFF;
 		unsigned char orientation;
 		unsigned char span;
 		unsigned char neighbourSpan;
+
+		inline bool IsValid() const { return index != 0xFFFF; }
 	};
 
 	struct DispNeighbour

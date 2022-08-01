@@ -1,7 +1,7 @@
 #include "BSPParser.h"
-#include "FileFormat/Structs.h"
 
-#include "Displacements.h"
+#include "FileFormat/Structs.h"
+#include "Displacements/Displacements.h"
 
 #include <cstring>
 #include <stdlib.h>
@@ -117,6 +117,8 @@ bool BSPMap::GetSurfEdgeVerts(const int32_t index, Vector* pVertA, Vector* pVert
 
 bool BSPMap::Triangulate()
 {
+	using Displacement = Displacements::Displacement;
+
 	// Get worldspawn faces
 	const Face* firstFace = mpFaces + mpModels[0].firstFace;
 	int32_t numFaces = mpModels[0].numFaces;
@@ -157,6 +159,73 @@ bool BSPMap::Triangulate()
 		mpUVs        == nullptr ||
 		mpTexIndices == nullptr
 	) {
+		FreeAll();
+		return false;
+	}
+
+	// Generate vertices from displacements and smooth normals
+	std::vector<Displacement> displacements(mNumDispInfos);
+	for (int dispIdx = 0; dispIdx < mNumDispInfos; dispIdx++) {
+		const DispInfo* pDispInfo = mpDispInfos + dispIdx;
+		const Face* pFace = mpFaces + pDispInfo->mapFace;
+		int32_t size = 1 << pDispInfo->power;
+
+		Vector corners[4];
+		int32_t firstCorner = 0;
+		float firstCornerDist2 = std::numeric_limits<float>::max();
+
+		for (
+			int32_t surfEdgeIdx = pFace->firstEdge;
+			surfEdgeIdx < pFace->firstEdge + pFace->numEdges;
+			surfEdgeIdx++
+			) {
+			Vector vert;
+			if (!GetSurfEdgeVerts(surfEdgeIdx, &vert)) {
+				FreeAll();
+				return false;
+			}
+			corners[surfEdgeIdx - pFace->firstEdge] = vert;
+
+			Vector distVec = pDispInfo->startPosition - vert;
+			float dist2 = distVec.Dot(distVec);
+			if (dist2 < firstCornerDist2) {
+				firstCorner = surfEdgeIdx - pFace->firstEdge;
+				firstCornerDist2 = dist2;
+			}
+		}
+
+		// Reorder corners
+		{
+			Vector tmpPoints[4];
+			for (int i = 0; i < 4; i++) {
+				tmpPoints[i] = corners[i];
+			}
+
+			for (int i = 0; i < 4; i++) {
+				corners[i] = tmpPoints[(i + firstCorner) % 4];
+			}
+		}
+
+		Displacement& disp = displacements[dispIdx];
+		disp.pInfo = pDispInfo;
+
+		try {
+			Displacements::GenerateDispSurf(pDispInfo, mpDispVerts + pDispInfo->dispVertStart, corners, disp);
+			Displacements::GenerateDispSurfNormals(pDispInfo, disp);
+			Displacements::GenerateDispSurfTangentSpaces(
+				pDispInfo, mpPlanes + pFace->planeNum,
+				mpTexInfos + pFace->texInfo,
+				disp
+			);
+		} catch (std::out_of_range e) {
+			FreeAll();
+			return false;
+		}
+	}
+
+	try {
+		Displacements::SmoothNeighbouringDispSurfNormals(displacements);
+	} catch (std::out_of_range e) {
 		FreeAll();
 		return false;
 	}
@@ -271,57 +340,8 @@ bool BSPMap::Triangulate()
 				uv2 += 3U * 2U;
 			}
 		} else { // Triangulate displacement
-			const DispInfo* pDispInfo = mpDispInfos + dispIdx;
-			int32_t size = 1 << pDispInfo->power;
-
-			Vector corners[4];
-			int32_t firstCorner = 0;
-			float firstCornerDist2 = std::numeric_limits<float>::max();
-
-			for (
-				int32_t surfEdgeIdx = pFace->firstEdge;
-				surfEdgeIdx < pFace->firstEdge + pFace->numEdges;
-				surfEdgeIdx++
-			) {
-				Vector vert;
-				if (!GetSurfEdgeVerts(surfEdgeIdx, &vert)) {
-					FreeAll();
-					return false;
-				}
-				corners[surfEdgeIdx - pFace->firstEdge] = vert;
-
-				Vector distVec = pDispInfo->startPosition - vert;
-				float dist2 = distVec.Dot(distVec);
-				if (dist2 < firstCornerDist2) {
-					firstCorner = surfEdgeIdx - pFace->firstEdge;
-					firstCornerDist2 = dist2;
-				}
-			}
-
-			// Reorder corners
-			{
-				Vector tmpPoints[4];
-				for (int i = 0; i < 4; i++) {
-					tmpPoints[i] = corners[i];
-				}
-
-				for (int i = 0; i < 4; i++) {
-					corners[i] = tmpPoints[(i + firstCorner) % 4];
-				}
-			}
-
-			Vector* dispVerts         = new Vector[(size + 1) * (size + 1)];
-			Vector* dispVertNormals   = new Vector[(size + 1) * (size + 1)];
-			Vector* dispVertTangents  = new Vector[(size + 1) * (size + 1)];
-			Vector* dispVertBinormals = new Vector[(size + 1) * (size + 1)];
-
-			Displacements::GenerateDispSurf(pDispInfo, mpDispVerts + pDispInfo->dispVertStart, corners, dispVerts);
-			Displacements::GenerateDispSurfNormals(pDispInfo, dispVerts, dispVertNormals);
-			Displacements::GenerateDispSurfTangentSpaces(
-				pDispInfo, mpTexInfos + texIdx, mpPlanes + pFace->planeNum,
-				dispVerts, dispVertNormals,
-				dispVertTangents, dispVertBinormals
-			);
+			const Displacement& disp = displacements[dispIdx];
+			int32_t size = 1 << disp.pInfo->power;
 
 			// Write tris
 			for (int32_t x = 0; x < size; x++) {
@@ -335,21 +355,21 @@ bool BSPMap::Triangulate()
 						int32_t i0 = a, i1 = tri == 0 ? b : c, i2 = tri == 0 ? c : d;
 						if (!mClockwise) std::swap(i1, i2);
 
-						*p0 = dispVerts[i0];
-						*p1 = dispVerts[i1];
-						*p2 = dispVerts[i2];
+						*p0 = disp.verts[i0];
+						*p1 = disp.verts[i1];
+						*p2 = disp.verts[i2];
 
-						*n0 = dispVertNormals[i0];
-						*n1 = dispVertNormals[i1];
-						*n2 = dispVertNormals[i2];
+						*n0 = disp.normals[i0];
+						*n1 = disp.normals[i1];
+						*n2 = disp.normals[i2];
 
-						*t0 = dispVertTangents[i0];
-						*t1 = dispVertTangents[i1];
-						*t2 = dispVertTangents[i2];
+						*t0 = disp.tangents[i0];
+						*t1 = disp.tangents[i1];
+						*t2 = disp.tangents[i2];
 
-						*b0 = dispVertBinormals[i0];
-						*b1 = dispVertBinormals[i1];
-						*b2 = dispVertBinormals[i2];
+						*b0 = disp.binormals[i0];
+						*b1 = disp.binormals[i1];
+						*b2 = disp.binormals[i2];
 
 						if (
 							!CalcUVs(texIdx, p0, uv0) ||
@@ -388,11 +408,6 @@ bool BSPMap::Triangulate()
 					}
 				}
 			}
-
-			delete[] dispVerts;
-			delete[] dispVertNormals;
-			delete[] dispVertTangents;
-			delete[] dispVertBinormals;
 		}
 	}
 
