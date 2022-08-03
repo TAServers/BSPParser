@@ -62,13 +62,34 @@ bool BSPMap::IsFaceNodraw(const Face* pFace) const
 
 void BSPMap::FreeAll()
 {
-	if (mpData       != nullptr) free(mpData);
-	if (mpPositions  != nullptr) free(mpPositions);
-	if (mpNormals    != nullptr) free(mpNormals);
-	if (mpTangents   != nullptr) free(mpTangents);
-	if (mpBinormals  != nullptr) free(mpBinormals);
-	if (mpUVs        != nullptr) free(mpUVs);
-	if (mpTexIndices != nullptr) free(mpTexIndices);
+	if (mpData != nullptr) {
+		free(mpData);
+		mpData = nullptr;
+	}
+	if (mpPositions != nullptr) {
+		free(mpPositions);
+		mpPositions = nullptr;
+	}
+	if (mpNormals != nullptr) {
+		free(mpNormals);
+		mpNormals = nullptr;
+	}
+	if (mpTangents != nullptr) {
+		free(mpTangents);
+		mpTangents = nullptr;
+	}
+	if (mpBinormals != nullptr) {
+		free(mpBinormals);
+		mpBinormals = nullptr;
+	}
+	if (mpUVs != nullptr) {
+		free(mpUVs);
+		mpUVs = nullptr;
+	}
+	if (mpTexIndices != nullptr) {
+		free(mpTexIndices);
+		mpTexIndices = nullptr;
+	}
 }
 
 bool BSPMap::CalcUVs(
@@ -461,6 +482,7 @@ BSPMap::BSPMap(
 		!ParseLump(&mpDispVerts, &mNumDispVerts)
 	) {
 		free(mpData);
+		mpData = nullptr;
 		return;
 	}
 

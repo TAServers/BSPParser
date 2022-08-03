@@ -67,10 +67,10 @@ private:
 
 	size_t mNumTris = 0U;
 
-	BSPStructs::Vector* mpPositions;
-	BSPStructs::Vector* mpNormals, * mpTangents, * mpBinormals;
-	float* mpUVs;
-	int16_t* mpTexIndices;
+	BSPStructs::Vector* mpPositions = nullptr;
+	BSPStructs::Vector* mpNormals = nullptr, * mpTangents = nullptr, * mpBinormals = nullptr;
+	float* mpUVs = nullptr;
+	int16_t* mpTexIndices = nullptr;
 
 	template<class LumpDatatype>
 	bool ParseLump(const LumpDatatype** pArray, size_t* pLength)
