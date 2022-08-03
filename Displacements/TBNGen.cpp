@@ -138,15 +138,15 @@ void Displacements::GenerateDispSurfTangentSpaces(
 	Vector tAxis{ pTexInfo->textureVecs[1][0], pTexInfo->textureVecs[1][1], pTexInfo->textureVecs[1][2] };
 
 	for (int i = 0; i < disp.normals.size(); i++) {
-		disp.tangents.push_back(tAxis);
-		disp.tangents.at(i).Normalise();
-		disp.binormals.push_back(disp.normals.at(i).Cross(disp.tangents.at(i)));
+		disp.binormals.push_back(tAxis);
 		disp.binormals.at(i).Normalise();
-		disp.tangents.at(i) = disp.binormals.at(i).Cross(disp.normals.at(i));
+		disp.tangents.push_back(disp.normals.at(i).Cross(disp.binormals.at(i)));
 		disp.tangents.at(i).Normalise();
+		disp.binormals.at(i) = disp.tangents.at(i).Cross(disp.normals.at(i));
+		disp.binormals.at(i).Normalise();
 
 		if (pPlane->normal.Dot(sAxis.Cross(tAxis)) > 0.0f) {
-			disp.binormals.at(i) *= -1;
+			disp.tangents.at(i) *= -1;
 		}
 	}
 }

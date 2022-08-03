@@ -32,15 +32,15 @@ void CalcTangentBinormal(
 	Vector sAxis{ pTexInfo->textureVecs[0][0], pTexInfo->textureVecs[0][1], pTexInfo->textureVecs[0][2] };
 	Vector tAxis{ pTexInfo->textureVecs[1][0], pTexInfo->textureVecs[1][1], pTexInfo->textureVecs[1][2] };
 
-	*t = tAxis;
-	t->Normalise();
-	*b = n->Cross(*t);
+	*b = tAxis;
 	b->Normalise();
-	*t = b->Cross(*n);
+	*t = n->Cross(*b);
 	t->Normalise();
+	*b = t->Cross(*n);
+	b->Normalise();
 
 	if (pPlane->normal.Dot(sAxis.Cross(tAxis)) > 0.0f) {
-		*b *= Vector{ -1, -1, -1 };
+		*t *= -1;
 	}
 }
 
