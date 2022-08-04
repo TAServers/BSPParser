@@ -102,7 +102,7 @@ int FindNeighborCornerVert(const Displacement& disp, const Vector& vTest)
 	for (int iCorner = 0; iCorner < 4; iCorner++) {
 		int iCornerVert = CornerToVertIdx(disp.pInfo, iCorner);
 
-		const Vector& vCornerVert = disp.verts.at(iCornerVert);
+		const Vector& vCornerVert = disp.verts[iCornerVert];
 
 		Vector delta = vCornerVert - vTest;
 		float flDist = sqrtf(delta.Dot(delta));
@@ -123,7 +123,7 @@ void BlendCorners(std::vector<Displacement>& displacements)
 	std::vector<int> cornerVerts;
 
 	for (int iDisp = 0; iDisp < displacements.size(); iDisp++) {
-		Displacement& disp = displacements.at(iDisp);
+		Displacement& disp = displacements[iDisp];
 
 		int neighbours[512];
 		int numNeighbours = GetAllNeighbours(disp.pInfo, neighbours);
@@ -132,28 +132,28 @@ void BlendCorners(std::vector<Displacement>& displacements)
 
 		for (int iCorner = 0; iCorner < 4; iCorner++) {
 			int iCornerVert = CornerToVertIdx(disp.pInfo, iCorner);
-			const Vector& vCornerVert = disp.verts.at(iCornerVert);
+			const Vector& vCornerVert = disp.verts[iCornerVert];
 
 			// For each displacement sharing this corner..
 			int divisor = 1;
-			Vector averageT = disp.tangents.at(iCornerVert);
-			Vector averageB = disp.binormals.at(iCornerVert);
-			Vector averageN = disp.normals.at(iCornerVert);
+			Vector averageT = disp.tangents[iCornerVert];
+			Vector averageB = disp.binormals[iCornerVert];
+			Vector averageN = disp.normals[iCornerVert];
 
 			for (int iNeighbour = 0; iNeighbour < numNeighbours; iNeighbour++) {
-				Displacement& neighbour = displacements.at(neighbours[iNeighbour]);
+				Displacement& neighbour = displacements[neighbours[iNeighbour]];
 
 				// Find out which vert it is on the neighbor.
 				int iNBCorner = FindNeighborCornerVert(neighbour, vCornerVert);
 				if (iNBCorner == -1) {
-					cornerVerts.at(iNeighbour) = -1; // remove this neighbor from the list.
+					cornerVerts[iNeighbour] = -1; // remove this neighbor from the list.
 				} else {
 					int iNBVert = CornerToVertIdx(neighbour.pInfo, iNBCorner);
-					cornerVerts.at(iNeighbour) = iNBVert;
+					cornerVerts[iNeighbour] = iNBVert;
 
-					averageT += neighbour.tangents.at(iNBVert);
-					averageB += neighbour.binormals.at(iNBVert);
-					averageN += neighbour.normals.at(iNBVert);
+					averageT += neighbour.tangents[iNBVert];
+					averageB += neighbour.binormals[iNBVert];
+					averageN += neighbour.normals[iNBVert];
 					divisor++;
 				}
 			}
@@ -163,18 +163,18 @@ void BlendCorners(std::vector<Displacement>& displacements)
 			averageB /= divisor;
 			averageN /= divisor;
 
-			disp.tangents.at(iCornerVert) = averageT;
-			disp.binormals.at(iCornerVert) = averageB;
-			disp.normals.at(iCornerVert) = averageN;
+			disp.tangents[iCornerVert] = averageT;
+			disp.binormals[iCornerVert] = averageB;
+			disp.normals[iCornerVert] = averageN;
 
 			for (int iNeighbour = 0; iNeighbour < numNeighbours; iNeighbour++) {
 				int iNBListIndex = neighbours[iNeighbour];
-				if (cornerVerts.at(iNeighbour) != -1) {
-					Displacement& neighbour = displacements.at(iNBListIndex);
+				if (cornerVerts[iNeighbour] != -1) {
+					Displacement& neighbour = displacements[iNBListIndex];
 
-					neighbour.tangents.at(cornerVerts.at(iNeighbour)) = averageT;
-					neighbour.binormals.at(cornerVerts.at(iNeighbour)) = averageB;
-					neighbour.normals.at(cornerVerts.at(iNeighbour)) = averageN;
+					neighbour.tangents[cornerVerts[iNeighbour]] = averageT;
+					neighbour.binormals[cornerVerts[iNeighbour]] = averageB;
+					neighbour.normals[cornerVerts[iNeighbour]] = averageN;
 				}
 			}
 		}
@@ -184,7 +184,7 @@ void BlendCorners(std::vector<Displacement>& displacements)
 void BlendTJuncs(std::vector<Displacement>& displacements)
 {
 	for (int iDisp = 0; iDisp < displacements.size(); iDisp++) {
-		Displacement& disp = displacements.at(iDisp);
+		Displacement& disp = displacements[iDisp];
 
 		for (int iEdge = 0; iEdge < 4; iEdge++) {
 			const DispNeighbour& edge = disp.pInfo->edgeNeighbours[iEdge];
@@ -192,10 +192,10 @@ void BlendTJuncs(std::vector<Displacement>& displacements)
 			int iMidPoint = GetEdgeMidPoint(disp.pInfo, iEdge);
 
 			if (edge.subNeighbors[0].IsValid() && edge.subNeighbors[1].IsValid()) {
-				const Vector& vMidPoint = disp.verts.at(iMidPoint);
+				const Vector& vMidPoint = disp.verts[iMidPoint];
 
-				Displacement& neighbour1 = displacements.at(edge.subNeighbors[0].index);
-				Displacement& neighbour2 = displacements.at(edge.subNeighbors[1].index);
+				Displacement& neighbour1 = displacements[edge.subNeighbors[0].index];
+				Displacement& neighbour2 = displacements[edge.subNeighbors[1].index];
 
 				int iNBCorners[2];
 				iNBCorners[0] = FindNeighborCornerVert(neighbour1, vMidPoint);
@@ -208,21 +208,21 @@ void BlendTJuncs(std::vector<Displacement>& displacements)
 						CornerToVertIdx(neighbour2.pInfo, iNBCorners[1])
 					};
 
-					Vector averageT = disp.tangents.at(iMidPoint);
-					Vector averageB = disp.binormals.at(iMidPoint);
-					Vector averageN = disp.normals.at(iMidPoint);
+					Vector averageT = disp.tangents[iMidPoint];
+					Vector averageB = disp.binormals[iMidPoint];
+					Vector averageN = disp.normals[iMidPoint];
 
-					averageT += neighbour1.tangents.at(viNBCorners[0]) + neighbour2.tangents.at(viNBCorners[1]);
-					averageB += neighbour1.binormals.at(viNBCorners[0]) + neighbour2.binormals.at(viNBCorners[1]);
-					averageN += neighbour1.normals.at(viNBCorners[0]) + neighbour2.normals.at(viNBCorners[1]);
+					averageT += neighbour1.tangents[viNBCorners[0]] + neighbour2.tangents[viNBCorners[1]];
+					averageB += neighbour1.binormals[viNBCorners[0]] + neighbour2.binormals[viNBCorners[1]];
+					averageN += neighbour1.normals[viNBCorners[0]] + neighbour2.normals[viNBCorners[1]];
 
 					averageT /= 3;
 					averageB /= 3;
 					averageN /= 3;
 
-					disp.tangents.at(iMidPoint) = neighbour1.tangents.at(viNBCorners[0]) = neighbour2.tangents.at(viNBCorners[1]) = averageT;
-					disp.binormals.at(iMidPoint) = neighbour1.binormals.at(viNBCorners[0]) = neighbour2.binormals.at(viNBCorners[1]) = averageB;
-					disp.normals.at(iMidPoint) = neighbour1.normals.at(viNBCorners[0]) = neighbour2.normals.at(viNBCorners[1]) = averageN;
+					disp.tangents[iMidPoint] = neighbour1.tangents[viNBCorners[0]] = neighbour2.tangents[viNBCorners[1]] = averageT;
+					disp.binormals[iMidPoint] = neighbour1.binormals[viNBCorners[0]] = neighbour2.binormals[viNBCorners[1]] = averageB;
+					disp.normals[iMidPoint] = neighbour1.normals[viNBCorners[0]] = neighbour2.normals[viNBCorners[1]] = averageN;
 				}
 			}
 		}
@@ -232,7 +232,7 @@ void BlendTJuncs(std::vector<Displacement>& displacements)
 void BlendEdges(std::vector<Displacement>& displacements)
 {
 	for (int iDisp = 0; iDisp < displacements.size(); iDisp++) {
-		Displacement& disp = displacements.at(iDisp);
+		Displacement& disp = displacements[iDisp];
 		int sideLength = (1 << disp.pInfo->power) + 1;
 
 		for (int iEdge = 0; iEdge < 4; iEdge++) {
@@ -242,7 +242,7 @@ void BlendEdges(std::vector<Displacement>& displacements)
 				const DispSubNeighbour& sub = edge.subNeighbors[iSub];
 				if (!sub.IsValid()) continue;
 
-				Displacement& neighbour = displacements.at(sub.index);
+				Displacement& neighbour = displacements[sub.index];
 
 				int iEdgeDim = g_EdgeDims[iEdge];
 
@@ -254,19 +254,19 @@ void BlendEdges(std::vector<Displacement>& displacements)
 
 				while (it.Next()) {
 					if (!it.IsLastVert()) {
-						Vector averageT = disp.tangents.at(it.GetVertIndex()) + neighbour.tangents.at(it.GetNBVertIndex());
-						Vector averageB = disp.binormals.at(it.GetVertIndex()) + neighbour.binormals.at(it.GetNBVertIndex());
-						Vector averageN = disp.normals.at(it.GetVertIndex()) + neighbour.normals.at(it.GetNBVertIndex());
+						Vector averageT = disp.tangents[it.GetVertIndex()] + neighbour.tangents[it.GetNBVertIndex()];
+						Vector averageB = disp.binormals[it.GetVertIndex()] + neighbour.binormals[it.GetNBVertIndex()];
+						Vector averageN = disp.normals[it.GetVertIndex()] + neighbour.normals[it.GetNBVertIndex()];
 						averageT /= 2;
 						averageB /= 2;
 						averageN /= 2;
 
-						disp.tangents.at(it.GetVertIndex()) = averageT;
-						disp.binormals.at(it.GetVertIndex()) = averageB;
-						disp.normals.at(it.GetVertIndex()) = averageN;
-						neighbour.tangents.at(it.GetNBVertIndex()) = averageT;
-						neighbour.binormals.at(it.GetNBVertIndex()) = averageB;
-						neighbour.normals.at(it.GetNBVertIndex()) = averageN;
+						disp.tangents[it.GetVertIndex()] = averageT;
+						disp.binormals[it.GetVertIndex()] = averageB;
+						disp.normals[it.GetVertIndex()] = averageN;
+						neighbour.tangents[it.GetNBVertIndex()] = averageT;
+						neighbour.binormals[it.GetNBVertIndex()] = averageB;
+						neighbour.normals[it.GetNBVertIndex()] = averageN;
 					}
 
 					int iPrevPos = prevPos[!iEdgeDim];
@@ -278,9 +278,9 @@ void BlendEdges(std::vector<Displacement>& displacements)
 						int coord = prevPos.y * sideLength + prevPos.x;
 						Vector tangent, binormal, normal;
 
-						VectorLerp(disp.tangents.at(coord), disp.tangents.at(it.GetVertIndex()), flPercent, tangent);
-						VectorLerp(disp.binormals.at(coord), disp.binormals.at(it.GetVertIndex()), flPercent, binormal);
-						VectorLerp(disp.normals.at(coord), disp.normals.at(it.GetVertIndex()), flPercent, normal);
+						VectorLerp(disp.tangents[coord], disp.tangents[it.GetVertIndex()], flPercent, tangent);
+						VectorLerp(disp.binormals[coord], disp.binormals[it.GetVertIndex()], flPercent, binormal);
+						VectorLerp(disp.normals[coord], disp.normals[it.GetVertIndex()], flPercent, normal);
 
 						tangent.Normalise();
 						binormal.Normalise();
@@ -291,9 +291,9 @@ void BlendEdges(std::vector<Displacement>& displacements)
 						viTween[!iEdgeDim] = iTween;
 						coord = viTween.y * sideLength + viTween.x;
 
-						disp.tangents.at(coord) = tangent;
-						disp.binormals.at(coord) = binormal;
-						disp.normals.at(coord) = normal;
+						disp.tangents[coord] = tangent;
+						disp.binormals[coord] = binormal;
+						disp.normals[coord] = normal;
 					}
 
 					prevPos = it.GetIndex();

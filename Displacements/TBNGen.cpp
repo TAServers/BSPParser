@@ -31,7 +31,7 @@ bool DoesEdgeExist(int indexRow, int indexCol, int direction, int postSpacing)
 }
 
 Vector CalcNormalFromEdges(
-	const DispInfo* pDispInfo, const std::vector<Vector>& verts,
+	const DispInfo* pDispInfo, const Vector* verts,
 	int indexRow, int indexCol, bool isEdge[4], int postSpacing
 )
 {
@@ -42,15 +42,15 @@ Vector CalcNormalFromEdges(
 	Vector tmpNormal;
 
 	if (isEdge[1] && isEdge[2]) {
-		tmpVec[0] = verts.at((indexCol + 1) * postSpacing + indexRow) - verts.at(indexCol * postSpacing + indexRow);
-		tmpVec[1] = verts.at(indexCol * postSpacing + (indexRow + 1)) - verts.at(indexCol * postSpacing + indexRow);
+		tmpVec[0] = verts[(indexCol + 1) * postSpacing + indexRow] - verts[indexCol * postSpacing + indexRow];
+		tmpVec[1] = verts[indexCol * postSpacing + (indexRow + 1)] - verts[indexCol * postSpacing + indexRow];
 		tmpNormal = tmpVec[1].Cross(tmpVec[0]);
 		tmpNormal.Normalise();
 		accumNormal += tmpNormal;
 		normalCount++;
 
-		tmpVec[0] = verts.at((indexCol + 1) * postSpacing + indexRow) - verts.at(indexCol * postSpacing + (indexRow + 1));
-		tmpVec[1] = verts.at((indexCol + 1) * postSpacing + (indexRow + 1)) - verts.at(indexCol * postSpacing + (indexRow + 1));
+		tmpVec[0] = verts[(indexCol + 1) * postSpacing + indexRow] - verts[indexCol * postSpacing + (indexRow + 1)];
+		tmpVec[1] = verts[(indexCol + 1) * postSpacing + (indexRow + 1)] - verts[indexCol * postSpacing + (indexRow + 1)];
 		tmpNormal = tmpVec[1].Cross(tmpVec[0]);
 		tmpNormal.Normalise();
 		accumNormal += tmpNormal;
@@ -58,15 +58,15 @@ Vector CalcNormalFromEdges(
 	}
 
 	if (isEdge[0] && isEdge[1]) {
-		tmpVec[0] = verts.at((indexCol + 1) * postSpacing + (indexRow - 1)) - verts.at(indexCol * postSpacing + (indexRow - 1));
-		tmpVec[1] = verts.at(indexCol * postSpacing + indexRow) - verts.at(indexCol * postSpacing + (indexRow - 1));
+		tmpVec[0] = verts[(indexCol + 1) * postSpacing + (indexRow - 1)] - verts[indexCol * postSpacing + (indexRow - 1)];
+		tmpVec[1] = verts[indexCol * postSpacing + indexRow] - verts[indexCol * postSpacing + (indexRow - 1)];
 		tmpNormal = tmpVec[1].Cross(tmpVec[0]);
 		tmpNormal.Normalise();
 		accumNormal += tmpNormal;
 		normalCount++;
 
-		tmpVec[0] = verts.at((indexCol + 1) * postSpacing + (indexRow - 1)) - verts.at(indexCol * postSpacing + indexRow);
-		tmpVec[1] = verts.at((indexCol + 1) * postSpacing + indexRow) - verts.at(indexCol * postSpacing + indexRow);
+		tmpVec[0] = verts[(indexCol + 1) * postSpacing + (indexRow - 1)] - verts[indexCol * postSpacing + indexRow];
+		tmpVec[1] = verts[(indexCol + 1) * postSpacing + indexRow] - verts[indexCol * postSpacing + indexRow];
 		tmpNormal = tmpVec[1].Cross(tmpVec[0]);
 		tmpNormal.Normalise();
 		accumNormal += tmpNormal;
@@ -74,15 +74,15 @@ Vector CalcNormalFromEdges(
 	}
 
 	if (isEdge[0] && isEdge[3]) {
-		tmpVec[0] = verts.at(indexCol * postSpacing + (indexRow - 1)) - verts.at((indexCol - 1) * postSpacing + (indexRow - 1));
-		tmpVec[1] = verts.at((indexCol - 1) * postSpacing + indexRow) - verts.at((indexCol - 1) * postSpacing + (indexRow - 1));
+		tmpVec[0] = verts[indexCol * postSpacing + (indexRow - 1)] - verts[(indexCol - 1) * postSpacing + (indexRow - 1)];
+		tmpVec[1] = verts[(indexCol - 1) * postSpacing + indexRow] - verts[(indexCol - 1) * postSpacing + (indexRow - 1)];
 		tmpNormal = tmpVec[1].Cross(tmpVec[0]);
 		tmpNormal.Normalise();
 		accumNormal += tmpNormal;
 		normalCount++;
 
-		tmpVec[0] = verts.at(indexCol * postSpacing + (indexRow - 1)) - verts.at((indexCol - 1) * postSpacing + indexRow);
-		tmpVec[1] = verts.at(indexCol * postSpacing + indexRow) - verts.at((indexCol - 1) * postSpacing + indexRow);
+		tmpVec[0] = verts[indexCol * postSpacing + (indexRow - 1)] - verts[(indexCol - 1) * postSpacing + indexRow];
+		tmpVec[1] = verts[indexCol * postSpacing + indexRow] - verts[(indexCol - 1) * postSpacing + indexRow];
 		tmpNormal = tmpVec[1].Cross(tmpVec[0]);
 		tmpNormal.Normalise();
 		accumNormal += tmpNormal;
@@ -90,15 +90,15 @@ Vector CalcNormalFromEdges(
 	}
 
 	if (isEdge[2] && isEdge[3]) {
-		tmpVec[0] = verts.at(indexCol * postSpacing + indexRow) - verts.at((indexCol - 1) * postSpacing + indexRow);
-		tmpVec[1] = verts.at((indexCol - 1) * postSpacing + (indexRow + 1)) - verts.at((indexCol - 1) * postSpacing + indexRow);
+		tmpVec[0] = verts[indexCol * postSpacing + indexRow] - verts[(indexCol - 1) * postSpacing + indexRow];
+		tmpVec[1] = verts[(indexCol - 1) * postSpacing + (indexRow + 1)] - verts[(indexCol - 1) * postSpacing + indexRow];
 		tmpNormal = tmpVec[1].Cross(tmpVec[0]);
 		tmpNormal.Normalise();
 		accumNormal += tmpNormal;
 		normalCount++;
 
-		tmpVec[0] = verts.at(indexCol * postSpacing + indexRow) - verts.at((indexCol - 1) * postSpacing + (indexRow + 1));
-		tmpVec[1] = verts.at(indexCol * postSpacing + (indexRow + 1)) - verts.at((indexCol - 1) * postSpacing + (indexRow + 1));
+		tmpVec[0] = verts[indexCol * postSpacing + indexRow] - verts[(indexCol - 1) * postSpacing + (indexRow + 1)];
+		tmpVec[1] = verts[indexCol * postSpacing + (indexRow + 1)] - verts[(indexCol - 1) * postSpacing + (indexRow + 1)];
 		tmpNormal = tmpVec[1].Cross(tmpVec[0]);
 		tmpNormal.Normalise();
 		accumNormal += tmpNormal;
@@ -120,10 +120,10 @@ void Displacements::GenerateDispSurfNormals(const BSPStructs::DispInfo* pDispInf
 				bIsEdge[k] = DoesEdgeExist(j, i, k, postSpacing);
 			}
 
-			disp.normals.push_back(CalcNormalFromEdges(
+			disp.normals[i * postSpacing + j] = CalcNormalFromEdges(
 				pDispInfo, disp.verts,
 				j, i, bIsEdge, postSpacing
-			));
+			);
 		}
 	}
 }
@@ -137,16 +137,18 @@ void Displacements::GenerateDispSurfTangentSpaces(
 	Vector sAxis{ pTexInfo->textureVecs[0][0], pTexInfo->textureVecs[0][1], pTexInfo->textureVecs[0][2] };
 	Vector tAxis{ pTexInfo->textureVecs[1][0], pTexInfo->textureVecs[1][1], pTexInfo->textureVecs[1][2] };
 
-	for (int i = 0; i < disp.normals.size(); i++) {
-		disp.binormals.push_back(tAxis);
-		disp.binormals.at(i).Normalise();
-		disp.tangents.push_back(disp.normals.at(i).Cross(disp.binormals.at(i)));
-		disp.tangents.at(i).Normalise();
-		disp.binormals.at(i) = disp.tangents.at(i).Cross(disp.normals.at(i));
-		disp.binormals.at(i).Normalise();
+	int postSpacing = (1 << pDispInfo->power) + 1;
+	int size = postSpacing * postSpacing;
+	for (int i = 0; i < size; i++) {
+		disp.binormals[i] = tAxis;
+		disp.binormals[i].Normalise();
+		disp.tangents[i] = disp.normals[i].Cross(disp.binormals[i]);
+		disp.tangents[i].Normalise();
+		disp.binormals[i] = disp.tangents[i].Cross(disp.normals[i]);
+		disp.binormals[i].Normalise();
 
 		if (pPlane->normal.Dot(sAxis.Cross(tAxis)) > 0.0f) {
-			disp.tangents.at(i) *= -1;
+			disp.tangents[i] *= -1;
 		}
 	}
 }

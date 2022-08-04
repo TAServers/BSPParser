@@ -31,7 +31,7 @@ void Displacements::GenerateDispSurf(
 			int ndx = i * postSpacing + j;
 
 			const DispVert* pDispInfoVert = dispVerts + ndx;
-			disp.verts.push_back(endPts[0] + (segInt * j) + pDispInfoVert->vec * pDispInfoVert->dist);
+			disp.verts[ndx] = endPts[0] + segInt * j + pDispInfoVert->vec * pDispInfoVert->dist;
 		}
 	}
 }

@@ -43,11 +43,31 @@ namespace Displacements
 
 	struct Displacement
 	{
-		const BSPStructs::DispInfo* pInfo;
-		std::vector<BSPStructs::Vector> verts;
-		std::vector<BSPStructs::Vector> normals;
-		std::vector<BSPStructs::Vector> tangents;
-		std::vector<BSPStructs::Vector> binormals;
+		const BSPStructs::DispInfo* pInfo = nullptr;
+		BSPStructs::Vector* verts = nullptr;
+		BSPStructs::Vector* normals = nullptr;
+		BSPStructs::Vector* tangents = nullptr;
+		BSPStructs::Vector* binormals = nullptr;
+
+		void Init(const BSPStructs::DispInfo* pDispInfo)
+		{
+			pInfo = pDispInfo;
+			size_t numVerts = (1 << pDispInfo->power) + 1;
+			numVerts *= numVerts;
+
+			verts = new BSPStructs::Vector[numVerts];
+			normals = new BSPStructs::Vector[numVerts];
+			tangents = new BSPStructs::Vector[numVerts];
+			binormals = new BSPStructs::Vector[numVerts];
+		}
+
+		~Displacement()
+		{
+			if (verts != nullptr) delete[] verts;
+			if (normals != nullptr) delete[] normals;
+			if (tangents != nullptr) delete[] tangents;
+			if (binormals != nullptr) delete[] binormals;
+		}
 	};
 
 	void GenerateDispSurf(

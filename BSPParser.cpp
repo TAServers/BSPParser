@@ -228,7 +228,7 @@ bool BSPMap::Triangulate()
 		}
 
 		Displacement& disp = displacements[dispIdx];
-		disp.pInfo = pDispInfo;
+		disp.Init(pDispInfo);
 
 		try {
 			Displacements::GenerateDispSurf(pDispInfo, mpDispVerts + pDispInfo->dispVertStart, corners, disp);
