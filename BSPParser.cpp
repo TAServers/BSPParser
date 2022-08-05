@@ -86,6 +86,10 @@ void BSPMap::FreeAll()
 		free(mpUVs);
 		mpUVs = nullptr;
 	}
+	if (mpAlphas != nullptr) {
+		free(mpAlphas);
+		mpAlphas = nullptr;
+	}
 	if (mpTexIndices != nullptr) {
 		free(mpTexIndices);
 		mpTexIndices = nullptr;
@@ -170,6 +174,7 @@ bool BSPMap::Triangulate()
 	mpTangents   = reinterpret_cast<Vector*>(malloc(sizeof(Vector) * 3U * mNumTris));
 	mpBinormals  = reinterpret_cast<Vector*>(malloc(sizeof(Vector) * 3U * mNumTris));
 	mpUVs        = reinterpret_cast<float*>(malloc(sizeof(float) * 2U * 3U * mNumTris));
+	mpAlphas     = reinterpret_cast<float*>(malloc(sizeof(float) * 3U * mNumTris));
 	mpTexIndices = reinterpret_cast<int16_t*>(malloc(sizeof(int16_t) * mNumTris));
 
 	if (
@@ -178,6 +183,7 @@ bool BSPMap::Triangulate()
 		mpTangents   == nullptr ||
 		mpBinormals  == nullptr ||
 		mpUVs        == nullptr ||
+		mpAlphas     == nullptr ||
 		mpTexIndices == nullptr
 	) {
 		FreeAll();
@@ -230,18 +236,24 @@ bool BSPMap::Triangulate()
 		Displacement& disp = displacements[dispIdx];
 		disp.Init(pDispInfo);
 
-		try {
-			Displacements::GenerateDispSurf(pDispInfo, mpDispVerts + pDispInfo->dispVertStart, corners, disp);
-			Displacements::GenerateDispSurfNormals(pDispInfo, disp);
-			Displacements::GenerateDispSurfTangentSpaces(
-				pDispInfo, mpPlanes + pFace->planeNum,
-				mpTexInfos + pFace->texInfo,
-				disp
-			);
-		} catch (std::out_of_range e) {
-			FreeAll();
-			return false;
+		Displacements::GenerateDispSurf(pDispInfo, mpDispVerts + pDispInfo->dispVertStart, corners, disp);
+		Displacements::GenerateDispSurfNormals(pDispInfo, disp);
+		Displacements::GenerateDispSurfTangentSpaces(
+			pDispInfo, mpPlanes + pFace->planeNum,
+			mpTexInfos + pFace->texInfo,
+			disp
+		);
+
+		Vector faceVerts[4];
+		GetSurfEdgeVerts(pFace->firstEdge, faceVerts, faceVerts + 1);
+		GetSurfEdgeVerts(pFace->firstEdge + 2, faceVerts + 2, faceVerts + 3);
+
+		float faceUVs[4][2];
+		for (int i = 0; i < 4; i++) {
+			CalcUVs(pFace->texInfo, faceVerts + i, faceUVs[i]);
 		}
+
+		Displacements::GenerateDispSurfUVs(pDispInfo, faceUVs, disp);
 	}
 
 	try {
@@ -273,6 +285,10 @@ bool BSPMap::Triangulate()
 	float* uv0 = mpUVs;
 	float* uv1 = mpUVs + 2U;
 	float* uv2 = mpUVs + 4U;
+
+	float* a0 = mpAlphas;
+	float* a1 = mpAlphas + 1U;
+	float* a2 = mpAlphas + 2U;
 
 	// Read data into buffers
 	for (const Face* pFace = firstFace; pFace < firstFace + numFaces; pFace++) {
@@ -334,6 +350,10 @@ bool BSPMap::Triangulate()
 				*b1 = *b0;
 				*b2 = *b0;
 
+				*a0 = 1.f;
+				*a1 = 1.f;
+				*a2 = 1.f;
+
 				// Add texture index
 				mpTexIndices[triIdx] = texIdx;
 
@@ -359,6 +379,10 @@ bool BSPMap::Triangulate()
 				uv0 += 3U * 2U;
 				uv1 += 3U * 2U;
 				uv2 += 3U * 2U;
+
+				a0 += 3U;
+				a1 += 3U;
+				a2 += 3U;
 			}
 		} else { // Triangulate displacement
 			const Displacement& disp = displacements[dispIdx];
@@ -392,14 +416,13 @@ bool BSPMap::Triangulate()
 						*b1 = disp.binormals[i1];
 						*b2 = disp.binormals[i2];
 
-						if (
-							!CalcUVs(texIdx, p0, uv0) ||
-							!CalcUVs(texIdx, p1, uv1) ||
-							!CalcUVs(texIdx, p2, uv2)
-						) {
-							FreeAll();
-							return false;
-						}
+						memcpy(uv0, disp.uvs + i0 * 2, sizeof(float) * 2);
+						memcpy(uv1, disp.uvs + i1 * 2, sizeof(float) * 2);
+						memcpy(uv2, disp.uvs + i2 * 2, sizeof(float) * 2);
+
+						*a0 = disp.alphas[i0];
+						*a1 = disp.alphas[i1];
+						*a2 = disp.alphas[i2];
 
 						// Add texture index
 						mpTexIndices[triIdx] = texIdx;
@@ -426,6 +449,10 @@ bool BSPMap::Triangulate()
 						uv0 += 3U * 2U;
 						uv1 += 3U * 2U;
 						uv2 += 3U * 2U;
+
+						a0 += 3U;
+						a1 += 3U;
+						a2 += 3U;
 					}
 				}
 			}
@@ -528,4 +555,5 @@ const Vector* BSPMap::GetNormals() const { return mpNormals; }
 const Vector* BSPMap::GetTangents() const { return mpTangents; }
 const Vector* BSPMap::GetBinormals() const { return mpBinormals; }
 const float* BSPMap::GetUVs() const { return mpUVs; }
+const float* BSPMap::GetAlphas() const { return mpAlphas; }
 const int16_t* BSPMap::GetTriTextures() const { return mpTexIndices; }

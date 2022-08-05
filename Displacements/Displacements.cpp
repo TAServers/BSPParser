@@ -1,7 +1,34 @@
 #include "Displacements.h"
 
+#include <algorithm>
+
 using namespace Displacements;
 using namespace BSPStructs;
+
+void Displacement::Init(const DispInfo* pDispInfo)
+{
+	pInfo = pDispInfo;
+	size_t numVerts = (1 << pDispInfo->power) + 1;
+	numVerts *= numVerts;
+
+	verts = new Vector[numVerts];
+	normals = new Vector[numVerts];
+	tangents = new Vector[numVerts];
+	binormals = new Vector[numVerts];
+
+	uvs = new float[numVerts * 2U];
+	alphas = new float[numVerts];
+}
+
+Displacement::~Displacement()
+{
+	if (verts != nullptr) delete[] verts;
+	if (normals != nullptr) delete[] normals;
+	if (tangents != nullptr) delete[] tangents;
+	if (binormals != nullptr) delete[] binormals;
+	if (uvs != nullptr) delete[] uvs;
+	if (alphas != nullptr) delete[] alphas;
+}
 
 void Displacements::GenerateDispSurf(
 	const DispInfo* pDispInfo, const DispVert* dispVerts,
@@ -32,6 +59,7 @@ void Displacements::GenerateDispSurf(
 
 			const DispVert* pDispInfoVert = dispVerts + ndx;
 			disp.verts[ndx] = endPts[0] + segInt * j + pDispInfoVert->vec * pDispInfoVert->dist;
+			disp.alphas[ndx] = std::clamp(pDispInfoVert->alpha / 255.f, 0.f, 1.f);
 		}
 	}
 }

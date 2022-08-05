@@ -44,30 +44,17 @@ namespace Displacements
 	struct Displacement
 	{
 		const BSPStructs::DispInfo* pInfo = nullptr;
+
 		BSPStructs::Vector* verts = nullptr;
 		BSPStructs::Vector* normals = nullptr;
 		BSPStructs::Vector* tangents = nullptr;
 		BSPStructs::Vector* binormals = nullptr;
 
-		void Init(const BSPStructs::DispInfo* pDispInfo)
-		{
-			pInfo = pDispInfo;
-			size_t numVerts = (1 << pDispInfo->power) + 1;
-			numVerts *= numVerts;
+		float* uvs = nullptr;
+		float* alphas = nullptr;
 
-			verts = new BSPStructs::Vector[numVerts];
-			normals = new BSPStructs::Vector[numVerts];
-			tangents = new BSPStructs::Vector[numVerts];
-			binormals = new BSPStructs::Vector[numVerts];
-		}
-
-		~Displacement()
-		{
-			if (verts != nullptr) delete[] verts;
-			if (normals != nullptr) delete[] normals;
-			if (tangents != nullptr) delete[] tangents;
-			if (binormals != nullptr) delete[] binormals;
-		}
+		void Init(const BSPStructs::DispInfo* pDispInfo);
+		~Displacement();
 	};
 
 	void GenerateDispSurf(
@@ -82,6 +69,8 @@ namespace Displacements
 		const BSPStructs::TexInfo* pTexInfo,
 		Displacement& disp
 	);
+
+	void GenerateDispSurfUVs(const BSPStructs::DispInfo* pDispInfo, float faceUVs[4][2], Displacement& disp);
 
 	void SmoothNeighbouringDispSurfNormals(std::vector<Displacement>& displacements);
 }

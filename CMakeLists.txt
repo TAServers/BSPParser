@@ -10,7 +10,8 @@ add_library(
 	"FileFormat/Parser.cpp"
 	"FileFormat/Vector.cpp"
 
-	"Displacements/Positions.cpp"
+	"Displacements/Displacements.cpp"
+	"Displacements/UVGen.cpp"
 	"Displacements/TBNGen.cpp"
 	"Displacements/NormalBlending.cpp"
 	"Displacements/SubEdgeIterator.cpp"

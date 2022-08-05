@@ -69,7 +69,7 @@ private:
 
 	BSPStructs::Vector* mpPositions = nullptr;
 	BSPStructs::Vector* mpNormals = nullptr, * mpTangents = nullptr, * mpBinormals = nullptr;
-	float* mpUVs = nullptr;
+	float* mpUVs = nullptr, * mpAlphas = nullptr;
 	int16_t* mpTexIndices = nullptr;
 
 	template<class LumpDatatype>
@@ -124,6 +124,9 @@ public:
 
 	// Returns a const pointer to the vertex UVs as raw float data
 	const float* GetUVs() const;
+
+	// Returns a const pointer to the vertex alphas as floats
+	const float* GetAlphas() const;
 
 	// Returns a const pointer to the triangle TexInfo indices as an array of int16_t
 	const int16_t* GetTriTextures() const;
