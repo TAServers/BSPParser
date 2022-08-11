@@ -53,7 +53,6 @@ bool BSPMap::IsFaceNodraw(const Face* pFace) const
 			(
 				SURF::NODRAW |
 				SURF::SKIP |
-				SURF::HITBOX |
 				SURF::TRIGGER
 			)
 		) != SURF::NONE
