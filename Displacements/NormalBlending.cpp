@@ -2,6 +2,7 @@
 #include "SubEdgeIterator.h"
 
 #include <vector>
+#include <cmath>
 
 using namespace Displacements;
 using namespace BSPStructs;
