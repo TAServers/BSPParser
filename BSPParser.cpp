@@ -243,13 +243,9 @@ bool BSPMap::Triangulate()
 			disp
 		);
 
-		Vector faceVerts[4];
-		GetSurfEdgeVerts(pFace->firstEdge, faceVerts, faceVerts + 1);
-		GetSurfEdgeVerts(pFace->firstEdge + 2, faceVerts + 2, faceVerts + 3);
-
 		float faceUVs[4][2];
 		for (int i = 0; i < 4; i++) {
-			CalcUVs(pFace->texInfo, faceVerts + i, faceUVs[i]);
+			CalcUVs(pFace->texInfo, corners + i, faceUVs[i]);
 		}
 
 		Displacements::GenerateDispSurfUVs(pDispInfo, faceUVs, disp);
