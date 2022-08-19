@@ -12,6 +12,14 @@ struct BSPTexture
 	int32_t width, height;
 };
 
+struct BSPStaticProp
+{
+	BSPStructs::Vector pos;
+	BSPStructs::QAngle ang;
+	const char* model;
+	int32_t skin;
+};
+
 class BSPMap
 {
 private:
@@ -23,6 +31,9 @@ private:
 
 	// Raw BSP structs
 	const BSPStructs::Header* mpHeader;
+
+	const BSPStructs::GameLump* mpGameLumps;
+	size_t mNumGameLumps = 0U;
 
 	const BSPStructs::Vector* mpVertices;
 	size_t mNumVertices = 0U;
@@ -60,6 +71,21 @@ private:
 	const BSPStructs::DispVert* mpDispVerts;
 	size_t mNumDispVerts = 0U;
 
+	const BSPStructs::DetailObjectDict* mpDetailObjectDict;
+	size_t mNumDetailObjectDictEntries = 0U;
+
+	const BSPStructs::DetailObject* mpDetailObjects;
+	size_t mNumDetailObjects = 0U;
+
+	const BSPStructs::StaticPropDict* mpStaticPropDict;
+	size_t mNumStaticPropDictEntries = 0U;
+
+	const BSPStructs::StaticPropLeaf* mpStaticPropLeaves;
+	size_t mNumStaticPropLeaves = 0U;
+
+	const BSPStructs::StaticProp* mpStaticProps;
+	size_t mNumStaticProps = 0U;
+
 	// Triangulation
 
 	// Whether to create CW tris or CCW tris
@@ -81,6 +107,8 @@ private:
 			pArray, pLength
 		);
 	}
+
+	bool ParseGameLumps();
 
 	bool IsFaceNodraw(const BSPStructs::Face* pFace) const;
 
@@ -130,4 +158,7 @@ public:
 
 	// Returns a const pointer to the triangle TexInfo indices as an array of int16_t
 	const int16_t* GetTriTextures() const;
+
+	int32_t GetNumStaticProps() const;
+	BSPStaticProp GetStaticProp(const int32_t index) const;
 };

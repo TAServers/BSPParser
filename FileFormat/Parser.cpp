@@ -18,7 +18,7 @@ bool BSPParser::GetLumpPtr(
 
 	const Lump& lump = pHeader->lumps[static_cast<size_t>(lumpType)];
 	if (lump.offset <= 0) return false;
-	if (lump.offset + lump.length >= size) return false;
+	if (lump.offset + lump.length > size) return false;
 
 	*pPtrOut = pData + lump.offset;
 	return true;

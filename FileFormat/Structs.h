@@ -108,14 +108,8 @@ namespace BSPStructs {
 		BSPEnums::GameLumpID  id;      // gamelump ID
 		uint16_t flags;   // flags
 		BSPEnums::GameLumpVersion version; // gamelump version
-		int32_t  fileofs; // offset to this gamelump
-		int32_t  filelen; // length
-	};
-
-	struct GameLumpHeader
-	{
-		int32_t lumpCount;	// number of game lumps
-		GameLump* gamelump;
+		int32_t  offset;
+		int32_t  length; // length
 	};
 
 	struct Plane
@@ -343,7 +337,7 @@ namespace BSPStructs {
 		uint16_t leaf;
 	};
 
-	struct StaticPropLightstylesLump_t
+	struct StaticPropLightstyles
 	{
 		ColorRGBExp32 lighting;
 	};

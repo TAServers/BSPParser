@@ -44,6 +44,93 @@ void CalcTangentBinormal(
 	}
 }
 
+bool BSPMap::ParseGameLumps()
+{
+	const int32_t* pGameLumpHeader;
+	if (!BSPParser::GetLumpPtr(
+		mpData, mDataSize,
+		mpHeader, LUMP::GAME_LUMP,
+		reinterpret_cast<const uint8_t**>(&pGameLumpHeader)
+	)) return false;
+
+	if (
+		*pGameLumpHeader < 0 ||
+		*pGameLumpHeader * sizeof(GameLump) + sizeof(int32_t) > mpHeader->lumps[static_cast<size_t>(LUMP::GAME_LUMP)].length
+	) return false;
+
+	mNumGameLumps = *pGameLumpHeader;
+	mpGameLumps = reinterpret_cast<const GameLump*>(pGameLumpHeader + 1);
+
+	for (int i = 0; i < mNumGameLumps; i++) {
+		switch (mpGameLumps[i].id) {
+		case GameLumpID::DETAIL_PROPS:
+			break;
+		case GameLumpID::STATIC_PROPS: {
+			if (mpGameLumps[i].version != GameLumpVersion::STATIC_PROPS) return false; // TODO: do I need to handle other static prop lump versions?
+
+			// Game lump under or overflows the file
+			if (
+				mpGameLumps[i].offset < 0 ||
+				mpGameLumps[i].offset + mpGameLumps[i].length > mDataSize
+			) return false;
+
+			size_t totalLumpSize = sizeof(int32_t) * 3;
+			if (totalLumpSize > mpGameLumps[i].length) return false; // Game lump size is corrupted
+
+			// Get ptr to number of static prop dict entries
+			// no idea why valve decided to put the counts for all of these before each segment of the sprop lump,
+			// cause it's a pain to parse
+			const uint8_t* pHeader = mpData + mpGameLumps[i].offset;
+			totalLumpSize += *reinterpret_cast<const int32_t*>(pHeader) * sizeof(StaticPropDict);
+			if (
+				*reinterpret_cast<const int32_t*>(pHeader) < 0 ||
+				totalLumpSize > mpGameLumps[i].length
+			) return false;
+
+			// Save valid number of dict entries
+			mNumStaticPropDictEntries = *reinterpret_cast<const int32_t*>(pHeader);
+
+			// Move ptr over the int and save offset ptr
+			pHeader += sizeof(int32_t);
+			mpStaticPropDict = reinterpret_cast<const StaticPropDict*>(pHeader);
+
+			// Move ptr over the static prop dictionary entries, and increase lump size by the size of the leaf lump
+			// Note that we already set the total lump size to all int32_t counts that should be in the static prop lump
+			pHeader += mNumStaticPropDictEntries * sizeof(StaticPropDict);
+			totalLumpSize += *reinterpret_cast<const int32_t*>(pHeader) * sizeof(StaticPropLeaf);
+			if (
+				*reinterpret_cast<const int32_t*>(pHeader) < 0 ||
+				totalLumpSize > mpGameLumps[i].length
+			) return false;
+
+			// Save num leaves
+			mNumStaticPropLeaves = *reinterpret_cast<const int32_t*>(pHeader);
+
+			// Move ptr and save
+			pHeader += sizeof(int32_t);
+			mpStaticPropLeaves = reinterpret_cast<const StaticPropLeaf*>(pHeader);
+
+			// Move ptr over static prop leaves and add static prop lump size
+			pHeader += mNumStaticPropLeaves * sizeof(StaticPropLeaf);
+			totalLumpSize += *reinterpret_cast<const int32_t*>(pHeader) * sizeof(StaticProp);
+			if (
+				*reinterpret_cast<const int32_t*>(pHeader) < 0 ||
+				totalLumpSize != mpGameLumps[i].length // Use != here as we want to make sure we've read exactly the amount of data the lump was meant to have
+			) return false;
+
+			mNumStaticProps = *reinterpret_cast<const int32_t*>(pHeader);
+
+			pHeader += sizeof(int32_t);
+			mpStaticProps = reinterpret_cast<const StaticProp*>(pHeader);
+			break;
+		} default:
+			break;
+		}
+	}
+
+	return true;
+}
+
 bool BSPMap::IsFaceNodraw(const Face* pFace) const
 {
 	return (
@@ -501,7 +588,8 @@ BSPMap::BSPMap(
 		) ||
 		!ParseLump(&mpModels, &mNumModels) ||
 		!ParseLump(&mpDispInfos, &mNumDispInfos) ||
-		!ParseLump(&mpDispVerts, &mNumDispVerts)
+		!ParseLump(&mpDispVerts, &mNumDispVerts) ||
+		!ParseGameLumps()
 	) {
 		free(mpData);
 		mpData = nullptr;
@@ -521,18 +609,18 @@ bool BSPMap::IsValid() const { return mIsValid; }
 BSPTexture BSPMap::GetTexture(const int16_t index) const
 {
 	if (index < 0 || index >= mNumTexInfos)
-		throw std::runtime_error("Texture index out of bounds");
+		throw std::out_of_range("Texture index out of bounds");
 
 	const TexInfo* pTexInfo = mpTexInfos + index;
 
 	if (pTexInfo->texData < 0 || pTexInfo->texData >= mNumTexDatas)
-		throw std::runtime_error("TexData index out of bounds");
+		throw std::out_of_range("TexData index out of bounds");
 	const TexData* pTexData = mpTexDatas + pTexInfo->texData;
 
 	if (
 		pTexData->nameStringTableId < 0 ||
 		pTexData->nameStringTableId >= mNumTexDataStringTableEntries
-	) throw std::runtime_error("TexData string table index out of bounds");
+	) throw std::out_of_range("TexData string table index out of bounds");
 
 	BSPTexture ret{};
 	ret.flags = pTexInfo->flags;
@@ -552,3 +640,23 @@ const Vector* BSPMap::GetBinormals() const { return mpBinormals; }
 const float* BSPMap::GetUVs() const { return mpUVs; }
 const float* BSPMap::GetAlphas() const { return mpAlphas; }
 const int16_t* BSPMap::GetTriTextures() const { return mpTexIndices; }
+
+int32_t BSPMap::GetNumStaticProps() const { return mNumStaticProps; }
+BSPStaticProp BSPMap::GetStaticProp(const int32_t index) const
+{
+	if (index < 0 || index >= mNumStaticProps)
+		throw std::out_of_range("Static prop index out of bounds");
+
+	uint16_t dictIdx = mpStaticProps[index].propType;
+	if (dictIdx >= mNumStaticPropDictEntries)
+		throw std::out_of_range("Static prop dictionary index out of bounds");
+
+	BSPStaticProp prop;
+	prop.pos = mpStaticProps[index].origin;
+	prop.ang = mpStaticProps[index].angles;
+	prop.model = mpStaticPropDict[dictIdx].modelName;
+	prop.skin = mpStaticProps[index].skin;
+
+	return prop;
+}
+
