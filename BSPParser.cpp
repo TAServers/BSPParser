@@ -66,62 +66,22 @@ bool BSPMap::ParseGameLumps()
 		case GameLumpID::DETAIL_PROPS:
 			break;
 		case GameLumpID::STATIC_PROPS: {
-			if (mpGameLumps[i].version != GameLumpVersion::STATIC_PROPS) return false; // TODO: do I need to handle other static prop lump versions?
+			mStaticPropsVersion = mpGameLumps[i].version;
 
-			// Game lump under or overflows the file
-			if (
-				mpGameLumps[i].offset < 0 ||
-				mpGameLumps[i].offset + mpGameLumps[i].length > mDataSize
-			) return false;
+			switch (mStaticPropsVersion) {
+			case 4:
+				if (!ParseStaticPropLump(mpGameLumps[i], &mpStaticPropsV4)) return false;
+				break;
+			case 5:
+				if (!ParseStaticPropLump(mpGameLumps[i], &mpStaticPropsV5)) return false;
+				break;
+			case 6:
+				if (!ParseStaticPropLump(mpGameLumps[i], &mpStaticPropsV6)) return false;
+				break;
+			default:
+				return false;
+			}
 
-			size_t totalLumpSize = sizeof(int32_t) * 3;
-			if (totalLumpSize > mpGameLumps[i].length) return false; // Game lump size is corrupted
-
-			// Get ptr to number of static prop dict entries
-			// no idea why valve decided to put the counts for all of these before each segment of the sprop lump,
-			// cause it's a pain to parse
-			const uint8_t* pHeader = mpData + mpGameLumps[i].offset;
-			totalLumpSize += *reinterpret_cast<const int32_t*>(pHeader) * sizeof(StaticPropDict);
-			if (
-				*reinterpret_cast<const int32_t*>(pHeader) < 0 ||
-				totalLumpSize > mpGameLumps[i].length
-			) return false;
-
-			// Save valid number of dict entries
-			mNumStaticPropDictEntries = *reinterpret_cast<const int32_t*>(pHeader);
-
-			// Move ptr over the int and save offset ptr
-			pHeader += sizeof(int32_t);
-			mpStaticPropDict = reinterpret_cast<const StaticPropDict*>(pHeader);
-
-			// Move ptr over the static prop dictionary entries, and increase lump size by the size of the leaf lump
-			// Note that we already set the total lump size to all int32_t counts that should be in the static prop lump
-			pHeader += mNumStaticPropDictEntries * sizeof(StaticPropDict);
-			totalLumpSize += *reinterpret_cast<const int32_t*>(pHeader) * sizeof(StaticPropLeaf);
-			if (
-				*reinterpret_cast<const int32_t*>(pHeader) < 0 ||
-				totalLumpSize > mpGameLumps[i].length
-			) return false;
-
-			// Save num leaves
-			mNumStaticPropLeaves = *reinterpret_cast<const int32_t*>(pHeader);
-
-			// Move ptr and save
-			pHeader += sizeof(int32_t);
-			mpStaticPropLeaves = reinterpret_cast<const StaticPropLeaf*>(pHeader);
-
-			// Move ptr over static prop leaves and add static prop lump size
-			pHeader += mNumStaticPropLeaves * sizeof(StaticPropLeaf);
-			totalLumpSize += *reinterpret_cast<const int32_t*>(pHeader) * sizeof(StaticProp);
-			if (
-				*reinterpret_cast<const int32_t*>(pHeader) < 0 ||
-				totalLumpSize != mpGameLumps[i].length // Use != here as we want to make sure we've read exactly the amount of data the lump was meant to have
-			) return false;
-
-			mNumStaticProps = *reinterpret_cast<const int32_t*>(pHeader);
-
-			pHeader += sizeof(int32_t);
-			mpStaticProps = reinterpret_cast<const StaticProp*>(pHeader);
 			break;
 		} default:
 			break;
@@ -644,19 +604,15 @@ const int16_t* BSPMap::GetTriTextures() const { return mpTexIndices; }
 int32_t BSPMap::GetNumStaticProps() const { return mNumStaticProps; }
 BSPStaticProp BSPMap::GetStaticProp(const int32_t index) const
 {
-	if (index < 0 || index >= mNumStaticProps)
-		throw std::out_of_range("Static prop index out of bounds");
-
-	uint16_t dictIdx = mpStaticProps[index].propType;
-	if (dictIdx >= mNumStaticPropDictEntries)
-		throw std::out_of_range("Static prop dictionary index out of bounds");
-
-	BSPStaticProp prop;
-	prop.pos = mpStaticProps[index].origin;
-	prop.ang = mpStaticProps[index].angles;
-	prop.model = mpStaticPropDict[dictIdx].modelName;
-	prop.skin = mpStaticProps[index].skin;
-
-	return prop;
+	switch (mStaticPropsVersion) {
+	case 4:
+		return GetStaticPropInternal(index, mpStaticPropsV4);
+	case 5:
+		return GetStaticPropInternal(index, mpStaticPropsV5);
+	case 6:
+		return GetStaticPropInternal(index, mpStaticPropsV6);
+	default:
+		throw std::runtime_error("Map is invalid");
+	}
 }
 

@@ -105,11 +105,11 @@ namespace BSPStructs {
 
 	struct GameLump
 	{
-		BSPEnums::GameLumpID  id;      // gamelump ID
-		uint16_t flags;   // flags
-		BSPEnums::GameLumpVersion version; // gamelump version
+		BSPEnums::GameLumpID id;
+		uint16_t flags;
+		uint16_t version;
 		int32_t  offset;
-		int32_t  length; // length
+		int32_t  length;
 	};
 
 	struct Plane
@@ -314,7 +314,7 @@ namespace BSPStructs {
 		float    flForcedFadeScale;
 	};
 
-	struct StaticProp
+	struct StaticPropV6
 	{
 		Vector   origin;
 		QAngle   angles;

@@ -92,15 +92,6 @@ namespace BSPEnums {
 	};
 	#undef GAMELUMP_MAKE_CODE
 
-	enum class GameLumpVersion : uint16_t
-	{
-		DETAIL_PROPS = 4,
-		DETAIL_PROP_LIGHTING = 0,
-		STATIC_PROPS = 6,
-		STATIC_PROP_LIGHTING = 0,
-		DETAIL_PROP_LIGHTING_HDR = 0
-	};
-
 	enum class DetailPropOrientation : uint8_t
 	{
 		NORMAL = 0,
