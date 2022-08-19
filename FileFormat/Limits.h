@@ -54,4 +54,10 @@ namespace BSPStructs
 	constexpr size_t MAX_MAP_PRIMITIVES           = 32768;
 	constexpr size_t MAX_MAP_PRIMVERTS            = 65536;
 	constexpr size_t MAX_MAP_PRIMINDICES          = 65536;
+
+	constexpr uint8_t DETAIL_NAME_LENGTH = 128;
+	constexpr uint8_t STATIC_PROP_NAME_LENGTH = 128;
+
+	#undef NUM_DISP_POWER_VERTS
+	#undef NUM_DISP_POWER_TRIS
 }
