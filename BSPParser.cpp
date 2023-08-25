@@ -143,7 +143,7 @@ void BSPMap::FreeAll()
 
 bool BSPMap::CalcUVs(
 	const int16_t texInfoIdx,
-    const Vector* const pos,
+	const Vector* const pos,
 	float* const pUVs
 ) const
 {

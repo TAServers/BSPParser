@@ -200,7 +200,7 @@ private:
 
 	bool CalcUVs(
 		int16_t texInfoIdx,
-        const BSPStructs::Vector* pos,
+		const BSPStructs::Vector* pos,
 		float* pUVs
 	) const;
 
