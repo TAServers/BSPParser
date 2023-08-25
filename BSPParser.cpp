@@ -615,4 +615,3 @@ BSPStaticProp BSPMap::GetStaticProp(const int32_t index) const
 		throw std::runtime_error("Map is invalid");
 	}
 }
-
