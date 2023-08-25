@@ -1,23 +1,24 @@
 #pragma once
 
 #include <cstdint>
+#include <stdexcept>
 
 #include "FileFormat/Parser.h"
 
 struct BSPTexture
 {
-	BSPEnums::SURF flags;
-	BSPStructs::Vector reflectivity;
-	const char* path;
-	int32_t width, height;
+	BSPEnums::SURF flags = BSPEnums::SURF::NONE;
+	BSPStructs::Vector reflectivity{0, 0, 0};
+	const char* path = nullptr;
+	int32_t width = 0, height = 0;
 };
 
 struct BSPStaticProp
 {
-	BSPStructs::Vector pos;
-	BSPStructs::QAngle ang;
-	const char* model;
-	int32_t skin;
+	BSPStructs::Vector pos{};
+	BSPStructs::QAngle ang{};
+	const char* model = nullptr;
+	int32_t skin = 0;
 };
 
 class BSPMap
@@ -87,7 +88,7 @@ private:
 	const BSPStructs::StaticPropV4* mpStaticPropsV4;
 	const BSPStructs::StaticPropV5* mpStaticPropsV5;
 	const BSPStructs::StaticPropV6* mpStaticPropsV6;
-	size_t mNumStaticProps = 0U;
+	int32_t mNumStaticProps = 0U;
 
 	// Triangulation
 
@@ -198,50 +199,51 @@ private:
 	void FreeAll();
 
 	bool CalcUVs(
-		const int16_t texInfoIdx, const BSPStructs::Vector* pos,
+		int16_t texInfoIdx,
+        const BSPStructs::Vector* pos,
 		float* pUVs
 	) const;
 
-	bool GetSurfEdgeVerts(const int32_t index, BSPStructs::Vector* pVertA, BSPStructs::Vector* pVertB = nullptr) const;
+	bool GetSurfEdgeVerts(int32_t index, BSPStructs::Vector* pVertA, BSPStructs::Vector* pVertB = nullptr) const;
 
 	bool Triangulate();
 
 public:
 	// Parses and triangulates a BSP from raw data
 	// clockwise sets which winding the triangles should have (default true)
-	BSPMap(const uint8_t* pFileData, const size_t dataSize, const bool clockwise = true);
+	BSPMap(const uint8_t* pFileData, size_t dataSize, bool clockwise = true);
 	~BSPMap();
 
 	// Returns whether the BSP was loaded correctly
-	bool IsValid() const;
+	[[nodiscard]] bool IsValid() const;
 
 	// Returns relevant texture information for an index in the TexInfo lump
-	BSPTexture GetTexture(const int16_t index) const;
+	[[nodiscard]] BSPTexture GetTexture(int16_t index) const;
 
 	// Gets the number of triangles in the triangulated BSP data
-	size_t GetNumTris() const;
+    [[nodiscard]] size_t GetNumTris() const;
 
 	// Returns a const pointer to the vertex positions as Vector structs (castable to floats)
-	const BSPStructs::Vector* GetVertices() const;
+    [[nodiscard]] const BSPStructs::Vector* GetVertices() const;
 
 	// Returns a const pointer to the vertex normals as Vector structs (castable to floats)
-	const BSPStructs::Vector* GetNormals() const;
+    [[nodiscard]] const BSPStructs::Vector* GetNormals() const;
 
 	// Returns a const pointer to the vertex tangents as Vector structs (castable to floats)
-	const BSPStructs::Vector* GetTangents() const;
+    [[nodiscard]] const BSPStructs::Vector* GetTangents() const;
 
 	// Returns a const pointer to the vertex binormals as Vector structs (castable to floats)
-	const BSPStructs::Vector* GetBinormals() const;
+    [[nodiscard]] const BSPStructs::Vector* GetBinormals() const;
 
 	// Returns a const pointer to the vertex UVs as raw float data
-	const float* GetUVs() const;
+    [[nodiscard]] const float* GetUVs() const;
 
 	// Returns a const pointer to the vertex alphas as floats
-	const float* GetAlphas() const;
+    [[nodiscard]] const float* GetAlphas() const;
 
 	// Returns a const pointer to the triangle TexInfo indices as an array of int16_t
-	const int16_t* GetTriTextures() const;
+    [[nodiscard]] const int16_t* GetTriTextures() const;
 
-	int32_t GetNumStaticProps() const;
-	BSPStaticProp GetStaticProp(const int32_t index) const;
+    [[nodiscard]] int32_t GetNumStaticProps() const;
+    [[nodiscard]] BSPStaticProp GetStaticProp(int32_t index) const;
 };

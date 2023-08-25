@@ -3,8 +3,7 @@
 #include "FileFormat/Structs.h"
 #include "Displacements/Displacements.h"
 
-#include <cstring>
-#include <stdlib.h>
+#include <cstdlib>
 #include <cmath>
 #include <stdexcept>
 #include <limits>
@@ -143,8 +142,9 @@ void BSPMap::FreeAll()
 }
 
 bool BSPMap::CalcUVs(
-	const int16_t texInfoIdx, const Vector* pos,
-	float* pUVs
+	const int16_t texInfoIdx,
+    const Vector* const pos,
+	float* const pUVs
 ) const
 {
 	if (texInfoIdx < 0 || texInfoIdx > mNumTexInfos) return false;
@@ -300,7 +300,7 @@ bool BSPMap::Triangulate()
 
 	try {
 		Displacements::SmoothNeighbouringDispSurfNormals(displacements);
-	} catch (std::out_of_range e) {
+	} catch (const std::out_of_range& e) {
 		FreeAll();
 		return false;
 	}
@@ -505,7 +505,7 @@ bool BSPMap::Triangulate()
 }
 
 BSPMap::BSPMap(
-	const uint8_t* pFileData, const size_t dataSize, const bool clockwise
+	const uint8_t* const pFileData, const size_t dataSize, const bool clockwise
 ) : mDataSize(dataSize), mClockwise(clockwise)
 {
 	if (pFileData == nullptr || dataSize == 0U) return;
