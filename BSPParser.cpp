@@ -566,6 +566,10 @@ BSPMap::~BSPMap()
 
 bool BSPMap::IsValid() const { return mIsValid; }
 
+size_t BSPMap::GetNumTextures() const {
+	return mNumTexInfos;
+}
+
 BSPTexture BSPMap::GetTexture(const int16_t index) const
 {
 	if (index < 0 || index >= mNumTexInfos)
@@ -593,6 +597,7 @@ BSPTexture BSPMap::GetTexture(const int16_t index) const
 }
 
 size_t BSPMap::GetNumTris() const { return mNumTris; }
+size_t BSPMap::GetNumVertices() const { return mNumTris * 3; }
 const Vector* BSPMap::GetVertices() const { return mpPositions; }
 const Vector* BSPMap::GetNormals() const { return mpNormals; }
 const Vector* BSPMap::GetTangents() const { return mpTangents; }

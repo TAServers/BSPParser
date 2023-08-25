@@ -217,11 +217,17 @@ public:
 	// Returns whether the BSP was loaded correctly
 	[[nodiscard]] bool IsValid() const;
 
+	// Gets th enumber of textures defined in the map
+	[[nodiscard]] size_t GetNumTextures() const;
+
 	// Returns relevant texture information for an index in the TexInfo lump
 	[[nodiscard]] BSPTexture GetTexture(int16_t index) const;
 
 	// Gets the number of triangles in the triangulated BSP data
     [[nodiscard]] size_t GetNumTris() const;
+
+	// Gets the number of vertices in the triangulated BSP data
+	[[nodiscard]] size_t GetNumVertices() const;
 
 	// Returns a const pointer to the vertex positions as Vector structs (castable to floats)
     [[nodiscard]] const BSPStructs::Vector* GetVertices() const;
