@@ -364,3 +364,6 @@ FodyWeavers.xsd
 
 premakeout/
 .vscode/
+
+# idea user configs
+.idea/discord.xml
