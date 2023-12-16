@@ -5,6 +5,7 @@
 
 #include <cstdlib>
 #include <cmath>
+#include <cstring>
 #include <stdexcept>
 #include <limits>
 
