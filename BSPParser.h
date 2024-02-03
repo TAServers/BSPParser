@@ -89,6 +89,7 @@ private:
 	const BSPStructs::StaticPropV4* mpStaticPropsV4;
 	const BSPStructs::StaticPropV5* mpStaticPropsV5;
 	const BSPStructs::StaticPropV6* mpStaticPropsV6;
+	const BSPStructs::StaticPropV7Multiplayer2013* mpStaticPropsV7Multiplayer2013;
 	int32_t mNumStaticProps = 0U;
 
 	// Triangulation

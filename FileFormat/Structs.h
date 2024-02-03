@@ -332,6 +332,26 @@ namespace BSPStructs {
 		uint16_t maxDXLevel;
 	};
 
+	struct StaticPropV7Multiplayer2013
+	{
+		Vector   origin;
+		QAngle   angles;
+		uint16_t propType;
+		uint16_t firstLeaf;
+		uint16_t leafCount;
+		uint8_t  solid;
+		int32_t  skin;
+		float    fadeMinDist;
+		float    fadeMaxDist;
+		Vector   lightingOrigin;
+		float    flForcedFadeScale;
+		uint16_t minDXLevel;
+		uint16_t maxDXLevel;
+		uint32_t flags;
+		uint8_t LightmapResX;
+		uint8_t lightmapResY;
+	};
+
 	struct StaticPropLeaf
 	{
 		uint16_t leaf;

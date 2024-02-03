@@ -80,8 +80,14 @@ void BSPMap::ParseGameLumps()
 			case 6:
 				ParseStaticPropLump(mpGameLumps[i], &mpStaticPropsV6);
 				break;
+			// A non-standard version 7 static prop lump exists in the 2013 multiplayer SDK exclusively
+			// This may appear as either version 7 or 10, but is not compatible with other engine versions' v7 or v10 (thank you Valve)
+			case 7:
+			case 10:
+				ParseStaticPropLump(mpGameLumps[i], &mpStaticPropsV7Multiplayer2013);
+				break;
 			default:
-				throw ParseError("Unsupported static prop lump version", LUMP::GAME_LUMP);
+				throw ParseError((std::string("Unsupported static prop lump version ") + std::to_string(mpGameLumps[i].version)).c_str(), LUMP::GAME_LUMP);
 			}
 
 			break;
@@ -636,6 +642,8 @@ BSPStaticProp BSPMap::GetStaticProp(const int32_t index) const
 		return GetStaticPropInternal(index, mpStaticPropsV5);
 	case 6:
 		return GetStaticPropInternal(index, mpStaticPropsV6);
+	case 7:
+		return GetStaticPropInternal(index, mpStaticPropsV7Multiplayer2013);
 	default:
 		throw std::runtime_error("Unsupported static prop version");
 	}
