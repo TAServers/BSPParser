@@ -4,40 +4,53 @@
 #include <cmath>
 
 #include "Enums.h"
+#include "Errors/ParseError.hpp"
 
 using namespace BSPStructs;
 using namespace BSPEnums;
+using BSPErrors::ParseError;
 
-bool BSPParser::GetLumpPtr(
+void BSPParser::GetLumpPtr(
 	const uint8_t* pData, const size_t size,
 	const Header* pHeader, const LUMP lumpType,
 	const uint8_t** pPtrOut
 )
 {
-	if (pData == nullptr || pHeader == nullptr || pPtrOut == nullptr) return false;
+	if (pData == nullptr || pHeader == nullptr || pPtrOut == nullptr) {
+		throw ParseError("Data, header or output pointers are null", lumpType);
+	}
 
 	const Lump& lump = pHeader->lumps[static_cast<size_t>(lumpType)];
-	if (lump.offset <= 0) return false;
-	if (lump.offset + lump.length > size) return false;
+	if (lump.offset < 0) {
+		throw ParseError("Lump offset is before the start of the data", lumpType);
+	}
+	if (lump.offset + lump.length > size) {
+		throw ParseError("Lump offset plus length overruns the data", lumpType);
+	}
 
 	*pPtrOut = pData + lump.offset;
-	return true;
 }
 
-bool BSPParser::ParseHeader(
+void BSPParser::ParseHeader(
 	const uint8_t* pData, const size_t size,
 	const Header** pHeaderPtr
 )
 {
-	if (pData == nullptr || pHeaderPtr == nullptr) return false;
-	if (size < sizeof(Header)) return false;
+	if (pData == nullptr || pHeaderPtr == nullptr) {
+		throw ParseError("Data or header pointers are null", LUMP::NONE);
+	}
+	if (size < sizeof(Header)) {
+		throw ParseError("Data size is smaller than the file header", LUMP::NONE);
+	}
 
 	*pHeaderPtr = reinterpret_cast<const Header*>(pData);
-	return (*pHeaderPtr)->ident == IDBSPHEADER;
+	if ((*pHeaderPtr)->ident != IDBSPHEADER) {
+		throw ParseError("Header's identifier is not 'VBSP'", LUMP::NONE);
+	}
 }
 
 template<class LumpDatatype>
-bool ParseLumpBase(
+void ParseLumpBase(
 	const uint8_t* pData, const size_t size,
 	const Header* pHeader,
 	const LumpDatatype** pArray, size_t* pLength,
@@ -49,30 +62,33 @@ bool ParseLumpBase(
 		pHeader == nullptr ||
 		pArray == nullptr ||
 		pLength == nullptr
-	) return false;
+	) {
+		throw ParseError("Data, header, array or length pointers are null", lump);
+	}
 
-	if (pHeader->lumps[static_cast<size_t>(lump)].length % sizeof(LumpDatatype) != 0)
-		return false;
+	if (pHeader->lumps[static_cast<size_t>(lump)].length % sizeof(LumpDatatype) != 0) {
+		throw ParseError("Size of the lump is not an exact multiple of the size of its items", lump);
+	}
 
 	const uint8_t* pLumpData;
-	if (BSPParser::GetLumpPtr(pData, size, pHeader, lump, &pLumpData) == false)
-		return false;
+	BSPParser::GetLumpPtr(pData, size, pHeader, lump, &pLumpData);
 
 	*pLength = pHeader->lumps[static_cast<size_t>(lump)].length / sizeof(LumpDatatype);
-	if (*pLength > max) return false;
+	if (*pLength > max) {
+		throw ParseError("Number of lump items exceeds the Source engine maximum", lump);
+	}
 
 	*pArray = reinterpret_cast<const LumpDatatype*>(pLumpData);
-	return true;
 }
 
-bool BSPParser::ParseArray(
+void BSPParser::ParseArray(
 	const uint8_t* pData, const size_t size,
 	const Header* pHeader,
 	const char** pArray, size_t* pLength,
 	const LUMP lump, const size_t max
 )
 {
-	return ParseLumpBase(
+	ParseLumpBase(
 		pData, size,
 		pHeader,
 		pArray, pLength,
@@ -80,14 +96,14 @@ bool BSPParser::ParseArray(
 	);
 }
 
-bool BSPParser::ParseArray(
+void BSPParser::ParseArray(
 	const uint8_t* pData, const size_t size,
 	const Header* pHeader,
 	const int32_t** pArray, size_t* pLength,
 	const LUMP lump, const size_t max
 )
 {
-	return ParseLumpBase(
+	ParseLumpBase(
 		pData, size,
 		pHeader,
 		pArray, pLength,
@@ -95,14 +111,14 @@ bool BSPParser::ParseArray(
 	);
 }
 
-bool BSPParser::ParseArray(
+void BSPParser::ParseArray(
 	const uint8_t* pData, const size_t size,
 	const Header* pHeader,
 	const Vector** pArray, size_t* pLength,
 	const LUMP lump, const size_t max
 )
 {
-	return ParseLumpBase(
+	ParseLumpBase(
 		pData, size,
 		pHeader,
 		pArray, pLength,
@@ -110,12 +126,12 @@ bool BSPParser::ParseArray(
 	);
 }
 
-bool BSPParser::ParseLump(
+void BSPParser::ParseLump(
 	const uint8_t* pData, const size_t size,
 	const Header* pHeader,
 	const Plane** pArray, size_t* pLength
 ) {
-	return ParseLumpBase(
+	ParseLumpBase(
 		pData, size,
 		pHeader,
 		pArray, pLength,
@@ -123,12 +139,12 @@ bool BSPParser::ParseLump(
 	);
 }
 
-bool BSPParser::ParseLump(
+void BSPParser::ParseLump(
 	const uint8_t* pData, const size_t size,
 	const Header* pHeader,
 	const Edge** pArray, size_t* pLength
 ) {
-	return ParseLumpBase(
+	ParseLumpBase(
 		pData, size,
 		pHeader,
 		pArray, pLength,
@@ -136,12 +152,12 @@ bool BSPParser::ParseLump(
 	);
 }
 
-bool BSPParser::ParseLump(
+void BSPParser::ParseLump(
 	const uint8_t* pData, const size_t size,
 	const Header* pHeader,
 	const Face** pArray, size_t* pLength
 ) {
-	return ParseLumpBase(
+	ParseLumpBase(
 		pData, size,
 		pHeader,
 		pArray, pLength,
@@ -149,12 +165,12 @@ bool BSPParser::ParseLump(
 	);
 }
 
-bool BSPParser::ParseLump(
+void BSPParser::ParseLump(
 	const uint8_t* pData, const size_t size,
 	const Header* pHeader,
 	const TexInfo** pArray, size_t* pLength
 ) {
-	return ParseLumpBase(
+	ParseLumpBase(
 		pData, size,
 		pHeader,
 		pArray, pLength,
@@ -162,12 +178,12 @@ bool BSPParser::ParseLump(
 	);
 }
 
-bool BSPParser::ParseLump(
+void BSPParser::ParseLump(
 	const uint8_t* pData, const size_t size,
 	const Header* pHeader,
 	const TexData** pArray, size_t* pLength
 ) {
-	return ParseLumpBase(
+	ParseLumpBase(
 		pData, size,
 		pHeader,
 		pArray, pLength,
@@ -175,12 +191,12 @@ bool BSPParser::ParseLump(
 	);
 }
 
-bool BSPParser::ParseLump(
+void BSPParser::ParseLump(
 	const uint8_t* pData, const size_t size,
 	const Header* pHeader,
 	const Model** pArray, size_t* pLength
 ) {
-	return ParseLumpBase(
+	ParseLumpBase(
 		pData, size,
 		pHeader,
 		pArray, pLength,
@@ -188,12 +204,12 @@ bool BSPParser::ParseLump(
 	);
 }
 
-bool BSPParser::ParseLump(
+void BSPParser::ParseLump(
 	const uint8_t* pData, const size_t size,
 	const Header* pHeader,
 	const DispInfo** pArray, size_t* pLength
 ) {
-	return ParseLumpBase(
+	ParseLumpBase(
 		pData, size,
 		pHeader,
 		pArray, pLength,
@@ -201,12 +217,12 @@ bool BSPParser::ParseLump(
 	);
 }
 
-bool BSPParser::ParseLump(
+void BSPParser::ParseLump(
 	const uint8_t* pData, const size_t size,
 	const Header* pHeader,
 	const DispVert** pArray, size_t* pLength
 ) {
-	return ParseLumpBase(
+	ParseLumpBase(
 		pData, size,
 		pHeader,
 		pArray, pLength,
