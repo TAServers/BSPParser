@@ -21,8 +21,8 @@ void BSPParser::GetLumpPtr(
 	}
 
 	const Lump& lump = pHeader->lumps[static_cast<size_t>(lumpType)];
-	if (lump.offset <= 0) {
-		throw ParseError("Lump offset is less than 1", lumpType);
+	if (lump.offset < 0) {
+		throw ParseError("Lump offset is before the start of the data", lumpType);
 	}
 	if (lump.offset + lump.length > size) {
 		throw ParseError("Lump offset plus length overruns the data", lumpType);
