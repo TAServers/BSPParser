@@ -17,6 +17,7 @@ add_library(
 	"Displacements/SubEdgeIterator.cpp"
 
 	"Errors/ParseError.cpp"
+	"Errors/TriangulationError.cpp"
 )
 
 target_include_directories(
