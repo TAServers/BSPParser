@@ -4,6 +4,7 @@
 #include <stdexcept>
 
 #include "FileFormat/Parser.h"
+#include "Errors/ParseError.hpp"
 
 struct BSPTexture
 {
@@ -103,9 +104,9 @@ private:
 	int16_t* mpTexIndices = nullptr;
 
 	template<class LumpDatatype>
-	bool ParseLump(const LumpDatatype** pArray, size_t* pLength)
+	void ParseLump(const LumpDatatype** pArray, size_t* pLength)
 	{
-		return BSPParser::ParseLump(
+		BSPParser::ParseLump(
 			mpData, mDataSize,
 			mpHeader,
 			pArray, pLength
@@ -115,45 +116,47 @@ private:
 	bool ParseGameLumps();
 
 	template<class StaticProp>
-	bool ParseStaticPropLump(const BSPStructs::GameLump& gameLump, const StaticProp** pPtrOut)
+	void ParseStaticPropLump(const BSPStructs::GameLump& gameLump, const StaticProp** pPtrOut)
 	{
-		// Game lump under or overflows the file
-		if (
-			gameLump.offset < 0 ||
-			gameLump.offset + gameLump.length > mDataSize
-		) return false;
+		using BSPErrors::ParseError;
+		using BSPEnums::LUMP;
 
+		if (gameLump.offset < 0) {
+			throw ParseError("Lump offset is before the start of the data", LUMP::GAME_LUMP);
+		}
+		if (gameLump.offset + gameLump.length > mDataSize) {
+			throw ParseError("Lump offset plus length overruns the data", LUMP::GAME_LUMP);
+		}
+
+		// Initialise to 3 * int32_t, as this is the number of counts in the game lump
 		size_t totalLumpSize = sizeof(int32_t) * 3;
-		if (totalLumpSize > gameLump.length) return false; // Game lump size is corrupted
+		if (totalLumpSize > gameLump.length) {
+			throw ParseError("Static prop game lump length is less than minimum", LUMP::GAME_LUMP);
+		}
 
 		// Get ptr to number of static prop dict entries
 		// no idea why valve decided to put the counts for all of these before each segment of the sprop lump,
 		// cause it's a pain to parse
 		const uint8_t* pHeader = mpData + gameLump.offset;
-		totalLumpSize += *reinterpret_cast<const int32_t*>(pHeader) * sizeof(BSPStructs::StaticPropDict);
-		if (
-			*reinterpret_cast<const int32_t*>(pHeader) < 0 ||
-			totalLumpSize > gameLump.length
-		) return false;
-
-		// Save valid number of dict entries
 		mNumStaticPropDictEntries = *reinterpret_cast<const int32_t*>(pHeader);
+		totalLumpSize += mNumStaticPropDictEntries * sizeof(BSPStructs::StaticPropDict);
+		if (mNumStaticPropDictEntries < 0 || totalLumpSize > gameLump.length) {
+			mNumStaticPropDictEntries = 0;
+			throw ParseError("Number of static prop dictionary entries is less than 0 or exceeds game lump length", LUMP::GAME_LUMP);
+		}
 
 		// Move ptr over the int and save offset ptr
 		pHeader += sizeof(int32_t);
 		mpStaticPropDict = reinterpret_cast<const BSPStructs::StaticPropDict*>(pHeader);
 
 		// Move ptr over the static prop dictionary entries, and increase lump size by the size of the leaf lump
-		// Note that we already set the total lump size to all int32_t counts that should be in the static prop lump
 		pHeader += mNumStaticPropDictEntries * sizeof(BSPStructs::StaticPropDict);
-		totalLumpSize += *reinterpret_cast<const int32_t*>(pHeader) * sizeof(BSPStructs::StaticPropLeaf);
-		if (
-			*reinterpret_cast<const int32_t*>(pHeader) < 0 ||
-			totalLumpSize > gameLump.length
-		) return false;
-
-		// Save num leaves
 		mNumStaticPropLeaves = *reinterpret_cast<const int32_t*>(pHeader);
+		totalLumpSize += mNumStaticPropLeaves * sizeof(BSPStructs::StaticPropLeaf);
+		if (mNumStaticPropLeaves < 0 || totalLumpSize > gameLump.length) {
+			mNumStaticPropLeaves = 0;
+			throw ParseError("Number of static prop leaves is less than 0 or exceeds game lump length", LUMP::GAME_LUMP);
+		}
 
 		// Move ptr and save
 		pHeader += sizeof(int32_t);
@@ -161,18 +164,19 @@ private:
 
 		// Move ptr over static prop leaves and add static prop lump size
 		pHeader += mNumStaticPropLeaves * sizeof(BSPStructs::StaticPropLeaf);
-		totalLumpSize += *reinterpret_cast<const int32_t*>(pHeader) * sizeof(StaticProp);
-		if (
-			*reinterpret_cast<const int32_t*>(pHeader) < 0 ||
-			totalLumpSize != gameLump.length // Use != here as we want to make sure we've read exactly the amount of data the lump was meant to have
-		) return false;
-
 		mNumStaticProps = *reinterpret_cast<const int32_t*>(pHeader);
+		totalLumpSize += mNumStaticProps * sizeof(StaticProp);
+		if (mNumStaticProps < 0) {
+			mNumStaticProps = 0;
+			throw ParseError("Number of static props is less than 0", LUMP::GAME_LUMP);
+		}
+		if (totalLumpSize != gameLump.length) {
+			mNumStaticProps = 0;
+			throw ParseError("Amount of parsed static prop data does not match the length of the game lump", LUMP::GAME_LUMP);
+		}
 
 		pHeader += sizeof(int32_t);
 		*pPtrOut = reinterpret_cast<const StaticProp*>(pHeader);
-
-		return true;
 	}
 
 	template<class StaticProp>
