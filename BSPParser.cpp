@@ -3,15 +3,16 @@
 #include "FileFormat/Structs.h"
 #include "Displacements/Displacements.h"
 #include "Errors/ParseError.hpp"
+#include "Errors/TriangulationError.hpp"
 
 #include <cstdlib>
-#include <cmath>
 #include <cstring>
 #include <stdexcept>
 #include <limits>
 
 using namespace BSPStructs;
 using namespace BSPEnums;
+using namespace BSPErrors;
 
 void CalcNormal(
 	const Vector* p0, const Vector* p1, const Vector* p2,
@@ -45,19 +46,21 @@ void CalcTangentBinormal(
 	}
 }
 
-bool BSPMap::ParseGameLumps()
+void BSPMap::ParseGameLumps()
 {
 	const int32_t* pGameLumpHeader;
-	if (!BSPParser::GetLumpPtr(
+	BSPParser::GetLumpPtr(
 		mpData, mDataSize,
 		mpHeader, LUMP::GAME_LUMP,
 		reinterpret_cast<const uint8_t**>(&pGameLumpHeader)
-	)) return false;
+	);
 
 	if (
 		*pGameLumpHeader < 0 ||
 		*pGameLumpHeader * sizeof(GameLump) + sizeof(int32_t) > mpHeader->lumps[static_cast<size_t>(LUMP::GAME_LUMP)].length
-	) return false;
+	) {
+		throw ParseError("Number of game lumps exceeds the total size of the lump", LUMP::GAME_LUMP);
+	}
 
 	mNumGameLumps = *pGameLumpHeader;
 	mpGameLumps = reinterpret_cast<const GameLump*>(pGameLumpHeader + 1);
@@ -67,20 +70,18 @@ bool BSPMap::ParseGameLumps()
 		case GameLumpID::DETAIL_PROPS:
 			break;
 		case GameLumpID::STATIC_PROPS: {
-			mStaticPropsVersion = mpGameLumps[i].version;
-
-			switch (mStaticPropsVersion) {
+			switch (mpGameLumps[i].version) {
 			case 4:
-				if (!ParseStaticPropLump(mpGameLumps[i], &mpStaticPropsV4)) return false;
+				ParseStaticPropLump(mpGameLumps[i], &mpStaticPropsV4);
 				break;
 			case 5:
-				if (!ParseStaticPropLump(mpGameLumps[i], &mpStaticPropsV5)) return false;
+				ParseStaticPropLump(mpGameLumps[i], &mpStaticPropsV5);
 				break;
 			case 6:
-				if (!ParseStaticPropLump(mpGameLumps[i], &mpStaticPropsV6)) return false;
+				ParseStaticPropLump(mpGameLumps[i], &mpStaticPropsV6);
 				break;
 			default:
-				return false;
+				throw ParseError("Unsupported static prop lump version", LUMP::GAME_LUMP);
 			}
 
 			break;
@@ -88,8 +89,6 @@ bool BSPMap::ParseGameLumps()
 			break;
 		}
 	}
-
-	return true;
 }
 
 bool BSPMap::IsFaceNodraw(const Face* pFace) const
@@ -188,7 +187,7 @@ bool BSPMap::GetSurfEdgeVerts(const int32_t index, Vector* pVertA, Vector* pVert
 	return true;
 }
 
-bool BSPMap::Triangulate()
+void BSPMap::Triangulate()
 {
 	using Displacement = Displacements::Displacement;
 
@@ -208,13 +207,17 @@ bool BSPMap::Triangulate()
 		if (dispIdx < 0) { // Not a displacement
 			mNumTris += pFace->numEdges - 2;
 		} else {
-			if (dispIdx >= mNumDispInfos) return false;
+			if (dispIdx >= mNumDispInfos) {
+				throw TriangulationError("Displacement index is greater than the number of displacements");
+			}
 
 			int32_t size = 1 << mpDispInfos[dispIdx].power;
 			mNumTris += size * size * 2;
 		}
 	}
-	if (mNumTris == 0U) return false;
+	if (mNumTris == 0U) {
+		throw TriangulationError("Map has no triangles");
+	}
 
 	// malloc buffers
 	mpPositions  = reinterpret_cast<Vector*>(malloc(sizeof(Vector) * 3U * mNumTris));
@@ -235,7 +238,7 @@ bool BSPMap::Triangulate()
 		mpTexIndices == nullptr
 	) {
 		FreeAll();
-		return false;
+		throw TriangulationError("Failed to allocate memory for triangle data");
 	}
 
 	// Generate vertices from displacements and smooth normals
@@ -243,7 +246,6 @@ bool BSPMap::Triangulate()
 	for (int dispIdx = 0; dispIdx < mNumDispInfos; dispIdx++) {
 		const DispInfo* pDispInfo = mpDispInfos + dispIdx;
 		const Face* pFace = mpFaces + pDispInfo->mapFace;
-		int32_t size = 1 << pDispInfo->power;
 
 		Vector corners[4];
 		int32_t firstCorner = 0;
@@ -253,11 +255,11 @@ bool BSPMap::Triangulate()
 			int32_t surfEdgeIdx = pFace->firstEdge;
 			surfEdgeIdx < pFace->firstEdge + pFace->numEdges;
 			surfEdgeIdx++
-			) {
+		) {
 			Vector vert;
 			if (!GetSurfEdgeVerts(surfEdgeIdx, &vert)) {
 				FreeAll();
-				return false;
+				throw TriangulationError("Failed to get surface edge vertices");
 			}
 			corners[surfEdgeIdx - pFace->firstEdge] = vert;
 
@@ -304,7 +306,7 @@ bool BSPMap::Triangulate()
 		Displacements::SmoothNeighbouringDispSurfNormals(displacements);
 	} catch (const std::out_of_range& e) {
 		FreeAll();
-		return false;
+		throw TriangulationError(e.what());
 	}
 
 	// Offsets
@@ -352,7 +354,7 @@ bool BSPMap::Triangulate()
 			GetSurfEdgeVerts(pFace->firstEdge, &root);
 			if (!CalcUVs(pFace->texInfo, &root, rootUV)) {
 				FreeAll();
-				return false;
+				throw TriangulationError("Failed to calculate root face UVs");
 			}
 
 			// For each edge (ignoring first and last)
@@ -368,7 +370,7 @@ bool BSPMap::Triangulate()
 					(!mClockwise && !GetSurfEdgeVerts(surfEdgeIdx, p2, p1))
 				) {
 					FreeAll();
-					return false;
+					throw TriangulationError("Failed to get surface edge vertices");
 				}
 
 				// Calculate UVs
@@ -378,7 +380,7 @@ bool BSPMap::Triangulate()
 					!CalcUVs(texIdx, p2, uv2)
 				) {
 					FreeAll();
-					return false;
+					throw TriangulationError("Failed to calculate face vertex UVs");
 				}
 
 				// Compute normal/tangent/bitangent
@@ -502,25 +504,21 @@ bool BSPMap::Triangulate()
 			}
 		}
 	}
-
-	return true;
 }
 
 BSPMap::BSPMap(
 	const uint8_t* const pFileData, const size_t dataSize, const bool clockwise
 ) : mDataSize(dataSize), mClockwise(clockwise)
 {
-	using BSPErrors::ParseError;
-
 	try {
 		if (pFileData == nullptr || dataSize == 0U) {
 			throw ParseError("File data is null or empty", BSPEnums::LUMP::NONE);
-		};
+		}
 
 		mpData = reinterpret_cast<uint8_t*>(malloc(dataSize));
 		if (mpData == nullptr) {
 			throw ParseError("Failed to allocate memory for file data copy", BSPEnums::LUMP::NONE);
-		};
+		}
 
 		memcpy(mpData, pFileData, dataSize);
 
@@ -571,7 +569,14 @@ BSPMap::BSPMap(
 		return;
 	}
 
-	if (Triangulate()) mIsValid = true;
+	try {
+		Triangulate();
+	} catch (const TriangulationError& error) {
+		errorReason = error.what();
+		return;
+	}
+
+	mIsValid = true;
 }
 
 BSPMap::~BSPMap()

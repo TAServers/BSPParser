@@ -113,7 +113,7 @@ private:
 		);
 	}
 
-	bool ParseGameLumps();
+	void ParseGameLumps();
 
 	template<class StaticProp>
 	void ParseStaticPropLump(const BSPStructs::GameLump& gameLump, const StaticProp** pPtrOut)
@@ -210,7 +210,7 @@ private:
 
 	bool GetSurfEdgeVerts(int32_t index, BSPStructs::Vector* pVertA, BSPStructs::Vector* pVertB = nullptr) const;
 
-	bool Triangulate();
+	void Triangulate();
 
 public:
 	std::string errorReason = "Unknown error";
