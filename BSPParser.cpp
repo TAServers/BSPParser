@@ -2,6 +2,7 @@
 
 #include "FileFormat/Structs.h"
 #include "Displacements/Displacements.h"
+#include "Errors/ParseError.hpp"
 
 #include <cstdlib>
 #include <cmath>
@@ -509,49 +510,62 @@ BSPMap::BSPMap(
 	const uint8_t* const pFileData, const size_t dataSize, const bool clockwise
 ) : mDataSize(dataSize), mClockwise(clockwise)
 {
-	if (pFileData == nullptr || dataSize == 0U) return;
+	using BSPErrors::ParseError;
 
-	mpData = reinterpret_cast<uint8_t*>(malloc(dataSize));
-	if (mpData == nullptr) return;
-	memcpy(mpData, pFileData, dataSize);
+	try {
+		if (pFileData == nullptr || dataSize == 0U) {
+			throw ParseError("File data is null or empty", BSPEnums::LUMP::NONE);
+		};
 
-	if (
-		!BSPParser::ParseHeader(mpData, dataSize, &mpHeader) ||
-		mpHeader->version < 19 || mpHeader->version > 21 ||
-		!BSPParser::ParseArray(
+		mpData = reinterpret_cast<uint8_t*>(malloc(dataSize));
+		if (mpData == nullptr) {
+			throw ParseError("Failed to allocate memory for file data copy", BSPEnums::LUMP::NONE);
+		};
+
+		memcpy(mpData, pFileData, dataSize);
+
+		BSPParser::ParseHeader(mpData, dataSize, &mpHeader);
+		if (mpHeader->version < 19 || mpHeader->version > 21) {
+			throw ParseError("Unsupported BSP version", BSPEnums::LUMP::NONE);
+		}
+
+		BSPParser::ParseArray(
 			mpData, dataSize,
 			mpHeader,
 			&mpVertices, &mNumVertices,
 			LUMP::VERTICES, MAX_MAP_VERTS
-		) ||
-		!ParseLump(&mpPlanes, &mNumPlanes) ||
-		!ParseLump(&mpEdges, &mNumEdges) ||
-		!BSPParser::ParseArray(
+		);
+		ParseLump(&mpPlanes, &mNumPlanes);
+		ParseLump(&mpEdges, &mNumEdges);
+		BSPParser::ParseArray(
 			mpData, dataSize,
 			mpHeader,
 			&mpSurfEdges, &mNumSurfEdges,
 			LUMP::SURFEDGES, MAX_MAP_SURFEDGES
-		) ||
-		!ParseLump(&mpFaces, &mNumFaces) ||
-		!ParseLump(&mpTexInfos, &mNumTexInfos) ||
-		!ParseLump(&mpTexDatas, &mNumTexDatas) ||
-		!BSPParser::ParseArray(
+		);
+		ParseLump(&mpFaces, &mNumFaces);
+		ParseLump(&mpTexInfos, &mNumTexInfos);
+		ParseLump(&mpTexDatas, &mNumTexDatas);
+		BSPParser::ParseArray(
 			mpData, dataSize,
 			mpHeader,
 			&mpTexDataStringTable, &mNumTexDataStringTableEntries,
 			LUMP::TEXDATA_STRING_TABLE, MAX_MAP_TEXDATA_STRING_TABLE
-		) ||
-		!BSPParser::ParseArray(
+		);
+		BSPParser::ParseArray(
 			mpData, dataSize,
 			mpHeader,
 			&mpTexDataStringData, &mNumTexDataStringDatas,
 			LUMP::TEXDATA_STRING_DATA, MAX_MAP_TEXDATA_STRING_DATA
-		) ||
-		!ParseLump(&mpModels, &mNumModels) ||
-		!ParseLump(&mpDispInfos, &mNumDispInfos) ||
-		!ParseLump(&mpDispVerts, &mNumDispVerts) ||
-		!ParseGameLumps()
-	) {
+		);
+		ParseLump(&mpModels, &mNumModels);
+		ParseLump(&mpDispInfos, &mNumDispInfos);
+		ParseLump(&mpDispVerts, &mNumDispVerts);
+		ParseGameLumps();
+	} catch (const ParseError& error) {
+		errorReason = error.what();
+		errorLump = error.lump;
+
 		free(mpData);
 		mpData = nullptr;
 		return;
@@ -618,6 +632,6 @@ BSPStaticProp BSPMap::GetStaticProp(const int32_t index) const
 	case 6:
 		return GetStaticPropInternal(index, mpStaticPropsV6);
 	default:
-		throw std::runtime_error("Map is invalid");
+		throw std::runtime_error("Unsupported static prop version");
 	}
 }

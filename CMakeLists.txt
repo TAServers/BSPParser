@@ -15,6 +15,8 @@ add_library(
 	"Displacements/TBNGen.cpp"
 	"Displacements/NormalBlending.cpp"
 	"Displacements/SubEdgeIterator.cpp"
+
+	"Errors/ParseError.cpp"
 )
 
 target_include_directories(

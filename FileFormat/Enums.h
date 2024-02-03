@@ -79,7 +79,8 @@ namespace BSPEnums {
 		OVERLAY_FADES,
 		OVERLAY_SYSTEM_LEVELS,
 		PHYSLEVEL,
-		DISP_MULTIBLEND
+		DISP_MULTIBLEND,
+		NONE = std::numeric_limits<uint32_t>::max(),
 	};
 
 	#define GAMELUMP_MAKE_CODE(a, b, c, d) ((a) << 24 | (b) << 16 | (c) << 8 | (d) << 0)

@@ -209,6 +209,9 @@ private:
 	bool Triangulate();
 
 public:
+	std::string errorReason = "Unknown error";
+	BSPEnums::LUMP errorLump = BSPEnums::LUMP::NONE;
+
 	// Parses and triangulates a BSP from raw data
 	// clockwise sets which winding the triangles should have (default true)
 	BSPMap(const uint8_t* pFileData, size_t dataSize, bool clockwise = true);
