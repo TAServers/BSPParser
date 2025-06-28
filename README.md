@@ -1,7 +1,15 @@
 # BSPParser
-Simple and modern library for parsing the Valve BSP Format.  
 
-This is mainly for use in my other projects like VisTrace, and is acompanied by https://github.com/Derpius/VTFParser.  
+Simple and modern library for parsing the Valve BSP map format.
 
-Provides complete abstraction from the BSP file format for reading triangulated map faces.  
-*Documentation coming soon*
+Documentation: https://taservers.github.io/BSPParser/
+
+See also: https://github.com/TAServers/MDLParser and https://github.com/TAServers/VTFParser
+
+## What's included
+
+TODO
+
+## Example
+
+TODO

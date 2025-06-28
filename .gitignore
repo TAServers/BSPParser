@@ -367,3 +367,5 @@ premakeout/
 
 # idea user configs
 .idea/discord.xml
+
+docs
