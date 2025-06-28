@@ -12,8 +12,8 @@ add_library(BSPParser
         src/helpers/offset-data-view.hpp
         src/structs/common.hpp
         src/enums/surface.hpp
-        src/accessors.hpp
-        src/accessors.cpp
+        src/face-accessors.hpp
+        src/face-accessors.cpp
         src/enums/lump.hpp
         src/enums/props.hpp
         src/structs/headers.hpp
@@ -24,6 +24,8 @@ add_library(BSPParser
         src/structs/detail-props.hpp
         src/structs/static-props.hpp
         src/structs/models.hpp
+        src/displacement-accessors.hpp
+        src/displacement-accessors.cpp
 )
 
 target_include_directories(
