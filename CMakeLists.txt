@@ -7,4 +7,12 @@ add_library(BSPParser
         BSPParser.hpp
         src/bsp.cpp
         src/bsp.hpp
+        src/helpers/check-bounds.hpp
+        src/helpers/offset-data-view.cpp
+        src/helpers/offset-data-view.hpp
+)
+
+target_include_directories(
+        BSPParser PRIVATE
+        "src"
 )
