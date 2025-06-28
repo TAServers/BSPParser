@@ -10,6 +10,20 @@ add_library(BSPParser
         src/helpers/check-bounds.hpp
         src/helpers/offset-data-view.cpp
         src/helpers/offset-data-view.hpp
+        src/structs/common.hpp
+        src/enums/surface.hpp
+        src/accessors.hpp
+        src/accessors.cpp
+        src/enums/lump.hpp
+        src/enums/props.hpp
+        src/structs/headers.hpp
+        src/structs/geometry.hpp
+        src/structs/brushes.hpp
+        src/structs/textures.hpp
+        src/structs/displacements.hpp
+        src/structs/detail-props.hpp
+        src/structs/static-props.hpp
+        src/structs/models.hpp
 )
 
 target_include_directories(
