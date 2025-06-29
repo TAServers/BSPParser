@@ -1,11 +1,11 @@
 #pragma once
 
-#include "src/enums/lump.hpp"
+#include "enums/lump.hpp"
 #include <array>
 #include <cstdint>
 
 namespace BspParser::Structs {
-  constexpr int32_t IDBSPHEADER = 'V' + ('B' << 8u) + ('S' << 16u) + ('P' << 24u);
+  constexpr int32_t IDBSP_HEADER = 'V' + ('B' << 8u) + ('S' << 16u) + ('P' << 24u);
   constexpr size_t HEADER_LUMPS = 64;
 
   struct Lump {

@@ -3,7 +3,6 @@
 #include "check-bounds.hpp"
 #include <memory>
 #include <span>
-#include <vector>
 
 namespace BspParser {
   class OffsetDataView {
@@ -20,36 +19,18 @@ namespace BspParser {
     OffsetDataView(const OffsetDataView&&) = delete;
     OffsetDataView& operator=(const OffsetDataView&&) = delete;
 
-    [[nodiscard]] OffsetDataView withOffset(size_t newOffset) const;
+    [[nodiscard]] OffsetDataView withRelativeOffset(size_t newOffset) const;
 
     template <typename T>
-    [[nodiscard]] ValueOffsetPair<T> parseStruct(const size_t relativeOffset, const char* errorMessage) const {
+    [[nodiscard]] const T& parseStruct(const size_t relativeOffset, const char* errorMessage) const {
       const auto absoluteOffset = offset + relativeOffset;
       checkBounds(absoluteOffset, sizeof(T), data.size_bytes(), errorMessage);
 
-      return std::make_pair(*reinterpret_cast<const T*>(&data[absoluteOffset]), absoluteOffset);
+      return *reinterpret_cast<const T*>(&data[absoluteOffset]);
     }
 
     template <typename T>
-    [[nodiscard]] std::vector<ValueOffsetPair<T>> parseStructArray(
-      const size_t relativeOffset, const size_t count, const char* errorMessage
-    ) const {
-      const auto absoluteOffset = offset + relativeOffset;
-      checkBounds(absoluteOffset, sizeof(T) * count, data.size_bytes(), errorMessage);
-
-      std::vector<ValueOffsetPair<T>> parsed;
-      parsed.reserve(count);
-
-      for (size_t i = 0; i < count; i++) {
-        const auto currentOffset = absoluteOffset + sizeof(T) * i;
-        parsed.emplace_back(*reinterpret_cast<const T*>(&data[currentOffset]), currentOffset);
-      }
-
-      return std::move(parsed);
-    }
-
-    template <typename T>
-    [[nodiscard]] std::span<const T> parseStructArrayWithoutOffsets(
+    [[nodiscard]] std::span<const T> parseStructArray(
       const size_t relativeOffset, const size_t count, const char* errorMessage
     ) const {
       const auto absoluteOffset = offset + relativeOffset;

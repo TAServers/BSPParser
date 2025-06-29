@@ -26,6 +26,8 @@ add_library(BSPParser
         src/structs/models.hpp
         src/displacement-accessors.hpp
         src/displacement-accessors.cpp
+        src/prop-accessors.hpp
+        src/prop-accessors.cpp
 )
 
 target_include_directories(

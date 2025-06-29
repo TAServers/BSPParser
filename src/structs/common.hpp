@@ -4,12 +4,12 @@ namespace BspParser::Structs {
   struct Vector2 {
     union {
       float x = 0;
-      float u = 0;
+      float u;
     };
 
     union {
       float y = 0;
-      float v = 0;
+      float v;
     };
   };
 
@@ -32,7 +32,7 @@ namespace BspParser::Structs {
     float z = 0;
   };
 
-  struct ColorRgbExp32 {
+  struct ColourRgbExp32 {
     uint8_t r = 0;
     uint8_t g = 0;
     uint8_t b = 0;

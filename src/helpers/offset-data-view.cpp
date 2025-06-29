@@ -6,8 +6,8 @@ namespace BspParser {
   OffsetDataView::OffsetDataView(const OffsetDataView& from, const size_t newOffset) :
     data(from.data), offset(newOffset) {}
 
-  OffsetDataView OffsetDataView::withOffset(const size_t newOffset) const {
-    return OffsetDataView(*this, newOffset);
+  OffsetDataView OffsetDataView::withRelativeOffset(const size_t newOffset) const {
+    return OffsetDataView(*this, offset + newOffset);
   }
 
   std::string OffsetDataView::parseString(const size_t relativeOffset, const char* errorMessage) const {
@@ -19,6 +19,6 @@ namespace BspParser {
       }
     }
 
-    throw OutOfBoundsAccess(errorMessage);
+    throw OutOfBoundsAccess(Enums::Lump::None, errorMessage);
   }
 }

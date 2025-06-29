@@ -1,8 +1,8 @@
 #pragma once
 
 #include "common.hpp"
-#include "src/enums/props.hpp"
-#include "src/limits.hpp"
+#include "limits.hpp"
+#include "enums/props.hpp"
 #include <array>
 
 namespace BspParser::Structs {
@@ -80,6 +80,6 @@ namespace BspParser::Structs {
   };
 
   struct StaticPropLightstyles {
-    ColorRgbExp32 lighting;
+    ColourRgbExp32 lighting;
   };
 }

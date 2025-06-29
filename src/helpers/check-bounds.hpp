@@ -8,7 +8,7 @@ namespace BspParser {
 
   inline void checkBounds(size_t offset, size_t count, size_t rangeSize, const char* errorMessage) {
     if (offset >= rangeSize || offset + count > rangeSize) {
-      throw OutOfBoundsAccess(errorMessage);
+      throw OutOfBoundsAccess(Enums::Lump::None, errorMessage);
     }
   }
 }

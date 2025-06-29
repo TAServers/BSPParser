@@ -1,12 +1,13 @@
 #pragma once
 
+#include "enums/lump.hpp"
 #include <cstdint>
 #include <stdexcept>
 
 #define ERROR_FOR_REASON(reason) \
-  class reason : public Error { \
+  class reason final : public Error { \
   public: \
-    explicit reason(const char* message) : Error(Reason::reason, message) {} \
+    explicit reason(const Enums::Lump lump, const std::string& message) : Error(Reason::reason, lump, message) {} \
   };
 
 namespace BspParser::Errors {
@@ -20,14 +21,20 @@ namespace BspParser::Errors {
 
   class Error : public std::runtime_error {
   public:
-    Error(const Reason reason, const char* message) : std::runtime_error(message), reason(reason) {}
+    Error(const Reason reason, const Enums::Lump lump, const std::string& message) :
+      std::runtime_error(message), reason(reason), lump(lump) {}
 
-    Reason getReason() const {
+    [[nodiscard]] Reason getReason() const {
       return reason;
+    }
+
+    [[nodiscard]] Enums::Lump getLump() const {
+      return lump;
     }
 
   private:
     Reason reason;
+    Enums::Lump lump;
   };
 
   ERROR_FOR_REASON(InvalidHeader);
