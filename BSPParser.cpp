@@ -12,72 +12,10 @@ using namespace BSPStructs;
 using namespace BSPEnums;
 using namespace BSPErrors;
 
-void CalcNormal(const Vector* p0, const Vector* p1, const Vector* p2, Vector* n) {
-  Vector edge0 = {p1->x - p0->x, p1->y - p0->y, p1->z - p0->z};
-  Vector edge1 = {p2->x - p0->x, p2->y - p0->y, p2->z - p0->z};
-
-  *n = edge1.Cross(edge0);
-  n->Normalise();
-}
-
-void CalcTangentBinormal(const TexInfo* pTexInfo, const Plane* pPlane, const Vector* n, Vector* t, Vector* b) {
-  Vector sAxis{pTexInfo->textureVecs[0][0], pTexInfo->textureVecs[0][1], pTexInfo->textureVecs[0][2]};
-  Vector tAxis{pTexInfo->textureVecs[1][0], pTexInfo->textureVecs[1][1], pTexInfo->textureVecs[1][2]};
-
-  *b = tAxis;
-  b->Normalise();
-  *t = n->Cross(*b);
-  t->Normalise();
-  *b = t->Cross(*n);
-  b->Normalise();
-
-  if (pPlane->normal.Dot(sAxis.Cross(tAxis)) > 0.0f) {
-    *t *= -1;
-  }
-}
-
 bool BSPMap::IsFaceNodraw(const Face* pFace) const {
   return (
     pFace->texInfo < 0 || (mpTexInfos[pFace->texInfo].flags & (SURF::NODRAW | SURF::SKIP | SURF::TRIGGER)) != SURF::NONE
   );
-}
-
-bool BSPMap::CalcUVs(const int16_t texInfoIdx, const Vector* const pos, float* const pUVs) const {
-  if (texInfoIdx < 0 || texInfoIdx > mNumTexInfos) return false;
-  const TexInfo* pTexInfo = mpTexInfos + texInfoIdx;
-
-  if (pTexInfo->texData < 0 || pTexInfo->texData >= mNumTexDatas) return false;
-  const TexData* pTexData = mpTexDatas + pTexInfo->texData;
-
-  const float* s = pTexInfo->textureVecs[0];
-  const float* t = pTexInfo->textureVecs[1];
-
-  pUVs[0] = s[0] * pos->x + s[1] * pos->y + s[2] * pos->z + s[3];
-  pUVs[1] = t[0] * pos->x + t[1] * pos->y + t[2] * pos->z + t[3];
-
-  pUVs[0] /= static_cast<float>(pTexData->width);
-  pUVs[1] /= static_cast<float>(pTexData->height);
-
-  return true;
-}
-
-bool BSPMap::GetSurfEdgeVerts(const int32_t index, Vector* pVertA, Vector* pVertB) const {
-  if (index < 0 || index >= mNumSurfEdges) return false;
-
-  int32_t edgeIdx = mpSurfEdges[index];
-  if (abs(edgeIdx) > mNumEdges) return false;
-
-  uint16_t iA = mpEdges[abs(edgeIdx)].vertices[0];
-  uint16_t iB = mpEdges[abs(edgeIdx)].vertices[1];
-
-  if (iA >= mNumVertices || iB >= mNumVertices) return false;
-
-  if (edgeIdx < 0) std::swap(iA, iB);
-
-  memcpy(pVertA, mpVertices + iA, sizeof(Vector));
-  if (pVertB != nullptr) memcpy(pVertB, mpVertices + iB, sizeof(Vector));
-
-  return true;
 }
 
 void BSPMap::Triangulate() {
@@ -188,33 +126,6 @@ void BSPMap::Triangulate() {
     throw TriangulationError(e.what());
   }
 
-  // Offsets
-  size_t triIdx = 0U;
-
-  Vector* p0 = mpPositions;
-  Vector* p1 = mpPositions + 1U;
-  Vector* p2 = mpPositions + 2U;
-
-  Vector* n0 = mpNormals;
-  Vector* n1 = mpNormals + 1U;
-  Vector* n2 = mpNormals + 2U;
-
-  Vector* t0 = mpTangents;
-  Vector* t1 = mpTangents + 1U;
-  Vector* t2 = mpTangents + 2U;
-
-  Vector* b0 = mpBinormals;
-  Vector* b1 = mpBinormals + 1U;
-  Vector* b2 = mpBinormals + 2U;
-
-  float* uv0 = mpUVs;
-  float* uv1 = mpUVs + 2U;
-  float* uv2 = mpUVs + 4U;
-
-  float* a0 = mpAlphas;
-  float* a1 = mpAlphas + 1U;
-  float* a2 = mpAlphas + 2U;
-
   // Read data into buffers
   for (const Face* pFace = firstFace; pFace < firstFace + numFaces; pFace++) {
     if (IsFaceNodraw(pFace) || pFace->numEdges < 3) continue;
@@ -227,77 +138,7 @@ void BSPMap::Triangulate() {
     int16_t dispIdx = pFace->dispInfo;
 
     if (dispIdx < 0) { // Triangulate face
-      // Get root vertex
-      Vector root;
-      float rootUV[2];
-      GetSurfEdgeVerts(pFace->firstEdge, &root);
-      if (!CalcUVs(pFace->texInfo, &root, rootUV)) {
-        FreeAll();
-        throw TriangulationError("Failed to calculate root face UVs");
-      }
 
-      // For each edge (ignoring first and last)
-      for (int32_t surfEdgeIdx = pFace->firstEdge + 1; surfEdgeIdx < pFace->firstEdge + pFace->numEdges - 1;
-           surfEdgeIdx++) {
-        // Add vertices to positions
-        *p0 = root;
-        if ((mClockwise && !GetSurfEdgeVerts(surfEdgeIdx, p1, p2)) ||
-            (!mClockwise && !GetSurfEdgeVerts(surfEdgeIdx, p2, p1))) {
-          FreeAll();
-          throw TriangulationError("Failed to get surface edge vertices");
-        }
-
-        // Calculate UVs
-        memcpy(uv0, rootUV, 2U * sizeof(float));
-        if (!CalcUVs(texIdx, p1, uv1) || !CalcUVs(texIdx, p2, uv2)) {
-          FreeAll();
-          throw TriangulationError("Failed to calculate face vertex UVs");
-        }
-
-        // Compute normal/tangent/bitangent
-        CalcNormal(p0, p1, p2, n0);
-        CalcTangentBinormal(mpTexInfos + texIdx, mpPlanes + pFace->planeNum, n0, t0, b0);
-        *n1 = *n0;
-        *n2 = *n0;
-        *t1 = *t0;
-        *t2 = *t0;
-        *b1 = *b0;
-        *b2 = *b0;
-
-        *a0 = 1.f;
-        *a1 = 1.f;
-        *a2 = 1.f;
-
-        // Add texture index
-        mpTexIndices[triIdx] = texIdx;
-
-        // Increment
-        triIdx++;
-
-        p0 += 3U;
-        p1 += 3U;
-        p2 += 3U;
-
-        n0 += 3U;
-        n1 += 3U;
-        n2 += 3U;
-
-        t0 += 3U;
-        t1 += 3U;
-        t2 += 3U;
-
-        b0 += 3U;
-        b1 += 3U;
-        b2 += 3U;
-
-        uv0 += 3U * 2U;
-        uv1 += 3U * 2U;
-        uv2 += 3U * 2U;
-
-        a0 += 3U;
-        a1 += 3U;
-        a2 += 3U;
-      }
     } else { // Triangulate displacement
       const Displacement& disp = displacements[dispIdx];
       int32_t size = 1 << disp.pInfo->power;
@@ -371,42 +212,5 @@ void BSPMap::Triangulate() {
         }
       }
     }
-  }
-}
-
-BSPTexture BSPMap::GetTexture(const int16_t index) const {
-  if (index < 0 || index >= mNumTexInfos) throw std::out_of_range("Texture index out of bounds");
-
-  const TexInfo* pTexInfo = mpTexInfos + index;
-
-  if (pTexInfo->texData < 0 || pTexInfo->texData >= mNumTexDatas)
-    throw std::out_of_range("TexData index out of bounds");
-  const TexData* pTexData = mpTexDatas + pTexInfo->texData;
-
-  if (pTexData->nameStringTableId < 0 || pTexData->nameStringTableId >= mNumTexDataStringTableEntries)
-    throw std::out_of_range("TexData string table index out of bounds");
-
-  BSPTexture ret{};
-  ret.flags = pTexInfo->flags;
-  ret.reflectivity = pTexData->reflectivity;
-  ret.path = mpTexDataStringData + mpTexDataStringTable[pTexData->nameStringTableId];
-  ret.width = pTexData->width;
-  ret.height = pTexData->height;
-
-  return ret;
-}
-
-BSPStaticProp BSPMap::GetStaticProp(const int32_t index) const {
-  switch (mStaticPropsVersion) {
-    case 4:
-      return GetStaticPropInternal(index, mpStaticPropsV4);
-    case 5:
-      return GetStaticPropInternal(index, mpStaticPropsV5);
-    case 6:
-      return GetStaticPropInternal(index, mpStaticPropsV6);
-    case 7:
-      return GetStaticPropInternal(index, mpStaticPropsV7Multiplayer2013);
-    default:
-      throw std::runtime_error("Unsupported static prop version");
   }
 }

@@ -6,8 +6,8 @@
 
 namespace BspParser::Structs {
   struct TexInfo {
-    std::array<Vector2, 4> textureVecs;
-    std::array<Vector2, 4> lightmapVecs;
+    std::array<Vector4, 2> textureVecs;
+    std::array<Vector4, 2> lightmapVecs;
     Enums::Surface flags;
     int32_t texData;
   };
