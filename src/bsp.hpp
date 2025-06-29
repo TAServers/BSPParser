@@ -45,15 +45,15 @@ namespace BspParser {
     // std::span<const Structs::DetailObjectDict> detailObjectDictionary;
     // std::span<const Structs::DetailObject> detailObjects;
 
-    std::optional<std::span<const Structs::StaticPropDict>> staticPropDictionary;
-    std::optional<std::span<const Structs::StaticPropLeaf>> staticPropLeaves;
+    std::optional<std::span<const Structs::StaticPropDict>> staticPropDictionary = std::nullopt;
+    std::optional<std::span<const Structs::StaticPropLeaf>> staticPropLeaves = std::nullopt;
 
     std::optional<std::variant<
       std::span<const Structs::StaticPropV4>,
       std::span<const Structs::StaticPropV5>,
       std::span<const Structs::StaticPropV6>,
       std::span<const Structs::StaticPropV7Multiplayer2013>>>
-      staticProps;
+      staticProps = std::nullopt;
 
   private:
     template <typename LumpType>

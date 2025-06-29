@@ -28,6 +28,8 @@ add_library(BSPParser
         src/displacement-accessors.cpp
         src/prop-accessors.hpp
         src/prop-accessors.cpp
+        src/texture-accessors.hpp
+        src/texture-accessors.cpp
 )
 
 target_include_directories(
