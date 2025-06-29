@@ -19,6 +19,6 @@ namespace BspParser {
       }
     }
 
-    throw OutOfBoundsAccess(Enums::Lump::None, errorMessage);
+    throw Errors::OutOfBoundsAccess(Enums::Lump::None, errorMessage);
   }
 }

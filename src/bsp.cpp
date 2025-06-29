@@ -22,6 +22,10 @@ namespace BspParser {
       throw Errors::InvalidHeader(Enums::Lump::None, "Header's identifier is not 'VBSP'");
     }
 
+    if (header->version < 19 || header->version > 21) {
+      throw Errors::UnsupportedVersion(Enums::Lump::None, std::format("Unsupported BSP version {}", header->version));
+    }
+
     gameLumps = parseLump<Structs::GameLump>(Enums::Lump::GameLump);
 
     vertices = parseLump<Structs::Vector>(Enums::Lump::Vertices, Limits::MAX_MAP_VERTS);

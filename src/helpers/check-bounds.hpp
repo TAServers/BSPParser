@@ -4,11 +4,9 @@
 #include <cstddef>
 
 namespace BspParser {
-  using namespace Errors;
-
   inline void checkBounds(size_t offset, size_t count, size_t rangeSize, const char* errorMessage) {
     if (offset >= rangeSize || offset + count > rangeSize) {
-      throw OutOfBoundsAccess(Enums::Lump::None, errorMessage);
+      throw Errors::OutOfBoundsAccess(Enums::Lump::None, errorMessage);
     }
   }
 }
