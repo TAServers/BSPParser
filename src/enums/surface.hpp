@@ -23,4 +23,22 @@ namespace BspParser::Enums {
     NoChop = 0x4000,
     Hitbox = 0x8000
   };
+
+  inline Surface operator|(Surface lhs, Surface rhs) {
+    return static_cast<Surface>(static_cast<int32_t>(lhs) | static_cast<int32_t>(rhs));
+  }
+
+  inline Surface& operator|=(Surface& lhs, const Surface rhs) {
+    lhs = lhs | rhs;
+    return lhs;
+  }
+
+  inline Surface operator&(Surface lhs, Surface rhs) {
+    return static_cast<Surface>(static_cast<int32_t>(lhs) & static_cast<int32_t>(rhs));
+  }
+
+  inline Surface& operator&=(Surface& lhs, const Surface rhs) {
+    lhs = lhs & rhs;
+    return lhs;
+  }
 }

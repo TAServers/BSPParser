@@ -5,6 +5,7 @@ set(CMAKE_CXX_STANDARD 20)
 
 add_library(BSPParser
         BSPParser.hpp
+        src/errors.hpp
         src/bsp.cpp
         src/bsp.hpp
         src/helpers/check-bounds.hpp

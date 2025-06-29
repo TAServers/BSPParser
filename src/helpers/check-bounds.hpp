@@ -1,6 +1,6 @@
 #pragma once
 
-#include "errors.hpp"
+#include "../errors.hpp"
 #include <cstddef>
 
 namespace BspParser {

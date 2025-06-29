@@ -52,6 +52,18 @@ namespace BspParser::Accessors {
         .v = (dot(xyz(tAxis), position) + tAxis.w) / static_cast<float>(textureData.height),
       };
     }
+
+    void assertFaceCanBeDirectlyTriangulated(const Structs::Face& face, const std::span<const int32_t> surfaceEdges) {
+      if (face.dispInfo >= 0) {
+        throw std::runtime_error(
+          "Cannot triangulate and draw displacement faces directly. Use the displacement accessors instead or triangulate manually if that's definitely what you want."
+        );
+      }
+
+      if (surfaceEdges.size() < 3) {
+        throw std::runtime_error("Face has less than 3 required edges needed to triangulate");
+      }
+    }
   }
 
   void iterateModels(const Bsp& bsp, const std::function<void(const Structs::Model& model)>& iteratee) {
@@ -103,7 +115,7 @@ namespace BspParser::Accessors {
         );
       }
 
-      if (face.texInfo >= bsp.textureInfos.size()) {
+      if (face.texInfo < 0 || face.texInfo >= bsp.textureInfos.size()) {
         throw Errors::OutOfBoundsAccess(
           Enums::Lump::Faces,
           std::format("Face texture info index '{}' is out of bounds of the texture info lump", face.texInfo)
@@ -137,6 +149,18 @@ namespace BspParser::Accessors {
     }
   }
 
+  size_t getFaceVertexCount(const Structs::Face& face, const std::span<const int32_t> surfaceEdges) {
+    assertFaceCanBeDirectlyTriangulated(face, surfaceEdges);
+
+    return surfaceEdges.size();
+  }
+
+  size_t getFaceTriangleListIndexCount(const Structs::Face& face, const std::span<const int32_t> surfaceEdges) {
+    assertFaceCanBeDirectlyTriangulated(face, surfaceEdges);
+
+    return (surfaceEdges.size() - 2) * 3;
+  }
+
   void generateFaceVertices(
     const Bsp& bsp,
     const Structs::Face& face,
@@ -145,9 +169,7 @@ namespace BspParser::Accessors {
     const std::span<const int32_t> surfaceEdges,
     const std::function<void(const Vertex& vertex)>& iteratee
   ) {
-    if (surfaceEdges.size() < 3 || face.dispInfo >= 0) {
-      return;
-    }
+    assertFaceCanBeDirectlyTriangulated(face, surfaceEdges);
 
     if (textureInfo.texData < 0 || textureInfo.texData >= bsp.textureDatas.size()) {
       throw Errors::OutOfBoundsAccess(
@@ -181,9 +203,7 @@ namespace BspParser::Accessors {
     const std::span<const int32_t> surfaceEdges,
     const std::function<void(int32_t i0, int32_t i1, int32_t i2)>& iteratee
   ) {
-    if (surfaceEdges.size() < 3 || face.dispInfo >= 0) {
-      return;
-    }
+    assertFaceCanBeDirectlyTriangulated(face, surfaceEdges);
 
     // First and last edge are ignored as they would create duplicate/degenerate/overlapping triangles
     for (int32_t edgeIndex = 1; edgeIndex < surfaceEdges.size() - 1; edgeIndex++) {

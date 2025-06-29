@@ -43,3 +43,5 @@ namespace BspParser::Errors {
   ERROR_FOR_REASON(UnsupportedVersion);
   ERROR_FOR_REASON(OutOfBoundsAccess);
 }
+
+#undef ERROR_FOR_REASON

@@ -1,8 +1,8 @@
 #pragma once
 
 #include "common.hpp"
-#include "limits.hpp"
-#include "enums/props.hpp"
+#include "../enums/props.hpp"
+#include "../limits.hpp"
 #include <array>
 
 namespace BspParser::Structs {

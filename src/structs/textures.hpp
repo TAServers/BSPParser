@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common.hpp"
-#include "enums/surface.hpp"
+#include "../enums/surface.hpp"
 #include <array>
 
 namespace BspParser::Structs {

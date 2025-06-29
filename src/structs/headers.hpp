@@ -1,6 +1,6 @@
 #pragma once
 
-#include "enums/lump.hpp"
+#include "../enums/lump.hpp"
 #include <array>
 #include <cstdint>
 
