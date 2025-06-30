@@ -100,6 +100,8 @@ namespace BspParser {
       return std::span<const LumpType>(reinterpret_cast<const LumpType*>(&data[lumpHeader.offset]), numItems);
     }
 
+    [[nodiscard]] std::span<const Structs::GameLump> parseGameLumpHeaders() const;
+
     template <class StaticProp> std::span<const StaticProp> parseStaticPropLump(const Structs::GameLump& lumpHeader) {
       if (lumpHeader.offset < 0) {
         throw Errors::InvalidBody(

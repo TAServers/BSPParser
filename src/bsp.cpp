@@ -26,7 +26,7 @@ namespace BspParser {
       throw Errors::UnsupportedVersion(Enums::Lump::None, std::format("Unsupported BSP version {}", header->version));
     }
 
-    gameLumps = parseLump<Structs::GameLump>(Enums::Lump::GameLump);
+    gameLumps = parseGameLumpHeaders();
 
     vertices = parseLump<Structs::Vector>(Enums::Lump::Vertices, Limits::MAX_MAP_VERTS);
     planes = parseLump<Structs::Plane>(Enums::Lump::Planes, Limits::MAX_MAP_PLANES);
@@ -77,5 +77,53 @@ namespace BspParser {
           break;
       }
     }
+  }
+
+  std::span<const Structs::GameLump> Bsp::parseGameLumpHeaders() const {
+    const auto& lumpHeader = header->lumps.at(static_cast<size_t>(Enums::Lump::GameLump));
+
+    if (lumpHeader.offset < 0) {
+      throw Errors::InvalidBody(
+        Enums::Lump::GameLump, std::format("Lump header has a negative offset ({})", lumpHeader.offset)
+      );
+    }
+
+    if (lumpHeader.length < sizeof(int32_t)) {
+      throw Errors::InvalidBody(
+        Enums::Lump::GameLump,
+        std::format(
+          "Game lump header has length ({}) less than the single int32 needed for the count", lumpHeader.length
+        )
+      );
+    }
+
+    if (lumpHeader.offset + lumpHeader.length > data.size_bytes()) {
+      throw Errors::OutOfBoundsAccess(
+        Enums::Lump::GameLump,
+        std::format(
+          "Lump header has offset + length ({}) overrunning the file ({})",
+          lumpHeader.offset + lumpHeader.length,
+          data.size_bytes()
+        )
+      );
+    }
+
+    const auto numGameLumpHeaders = *reinterpret_cast<const int32_t*>(&data[lumpHeader.offset]);
+
+    const auto actualLumpSizeBytes = numGameLumpHeaders * sizeof(Structs::GameLump) + sizeof(int32_t);
+    if (actualLumpSizeBytes > lumpHeader.length) {
+      throw Errors::OutOfBoundsAccess(
+        Enums::Lump::GameLump,
+        std::format(
+          "Actual size of game lump given by the number of entries ({}) exceeds the total size of the lump ({})",
+          actualLumpSizeBytes,
+          lumpHeader.length
+        )
+      );
+    }
+
+    return std::span(
+      reinterpret_cast<const Structs::GameLump*>(&data[lumpHeader.offset + sizeof(int32_t)]), numGameLumpHeaders
+    );
   }
 }
