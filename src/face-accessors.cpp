@@ -181,8 +181,9 @@ namespace BspParser::Accessors {
     }
 
     const auto& textureData = bsp.textureDatas[textureInfo.texData];
-    const auto normal =
-      face.side == 0 ? plane.normal : Structs::Vector{.x = -plane.normal.x, .y = -plane.normal.y, .z = -plane.normal.z};
+
+    // Dev wiki says face.side is non-zero when the plane faces into the face, but inverting the normal based on that produces incorrect results
+    const auto normal = plane.normal;
 
     for (const auto& surfEdge : surfaceEdges) {
       const auto& position = getVertexPosition(bsp, surfEdge);
