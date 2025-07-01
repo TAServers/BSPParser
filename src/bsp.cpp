@@ -2,9 +2,7 @@
 #include "structs/physics.hpp"
 
 namespace BspParser {
-  Bsp::Bsp(const std::span<std::byte const> data) {
-    this->data = data;
-
+  Bsp::Bsp(const std::span<std::byte const> data) : data(data) {
     if (data.size_bytes() < sizeof(Structs::Header)) {
       throw Errors::OutOfBoundsAccess(
         Enums::Lump::None,
