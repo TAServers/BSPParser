@@ -15,9 +15,26 @@
 #include <span>
 #include <string>
 #include <variant>
+#include <vector>
 
 namespace BspParser {
   struct Bsp {
+    struct PhysModel {
+      /**
+       * Index into the model lump this physics model is for
+       */
+      int32_t modelIndex;
+
+      /**
+       * Total number of solids in the collision surface sections
+       */
+      int32_t solidCount;
+
+      std::span<const std::byte> collisionData;
+
+      std::span<const std::byte> textSectionData;
+    };
+
     explicit Bsp(std::span<const std::byte> data);
 
     std::span<const std::byte> data;
@@ -41,6 +58,8 @@ namespace BspParser {
 
     std::span<const Structs::DispInfo> displacementInfos;
     std::span<const Structs::DispVert> displacementVertices;
+
+    std::vector<PhysModel> physicsModels;
 
     // std::span<const Structs::DetailObjectDict> detailObjectDictionary;
     // std::span<const Structs::DetailObject> detailObjects;
@@ -101,6 +120,8 @@ namespace BspParser {
     }
 
     [[nodiscard]] std::span<const Structs::GameLump> parseGameLumpHeaders() const;
+
+    [[nodiscard]] std::vector<PhysModel> parsePhysCollideLump() const;
 
     template <class StaticProp> std::span<const StaticProp> parseStaticPropLump(const Structs::GameLump& lumpHeader) {
       if (lumpHeader.offset < 0) {

@@ -1,4 +1,5 @@
 #include "bsp.hpp"
+#include "structs/physics.hpp"
 
 namespace BspParser {
   Bsp::Bsp(const std::span<std::byte const> data) {
@@ -43,6 +44,8 @@ namespace BspParser {
 
     displacementInfos = parseLump<Structs::DispInfo>(Enums::Lump::DisplacementInfo, Limits::MAX_MAP_DISPINFO);
     displacementVertices = parseLump<Structs::DispVert>(Enums::Lump::DisplacementVertices, Limits::MAX_MAP_DISP_VERTS);
+
+    physicsModels = parsePhysCollideLump();
 
     for (const auto& gameLump : gameLumps) {
       switch (gameLump.id) {
@@ -125,5 +128,77 @@ namespace BspParser {
     return std::span(
       reinterpret_cast<const Structs::GameLump*>(&data[lumpHeader.offset + sizeof(int32_t)]), numGameLumpHeaders
     );
+  }
+
+  std::vector<Bsp::PhysModel> Bsp::parsePhysCollideLump() const {
+    const auto& lumpHeader = header->lumps.at(static_cast<size_t>(Enums::Lump::PhysCollide));
+
+    if (lumpHeader.offset < 0) {
+      throw Errors::InvalidBody(
+        Enums::Lump::PhysCollide, std::format("Lump header has a negative offset ({})", lumpHeader.offset)
+      );
+    }
+
+    if (lumpHeader.length < 0) {
+      throw Errors::InvalidBody(
+        Enums::Lump::PhysCollide, std::format("Lump header has a negative length ({})", lumpHeader.length)
+      );
+    }
+
+    if (lumpHeader.offset + lumpHeader.length > data.size_bytes()) {
+      throw Errors::OutOfBoundsAccess(
+        Enums::Lump::PhysCollide,
+        std::format(
+          "Lump header has offset + length ({}) overrunning the file ({})",
+          lumpHeader.offset + lumpHeader.length,
+          data.size_bytes()
+        )
+      );
+    }
+
+    std::vector<PhysModel> physicsModels;
+
+    size_t offset = lumpHeader.offset;
+    while (true) {
+      auto remainingBytes = lumpHeader.length - (offset - lumpHeader.offset);
+
+      if (remainingBytes < sizeof(Structs::PhysModelHeader)) {
+        throw Errors::InvalidBody(
+          Enums::Lump::PhysCollide, std::format("PhysCollide lump is not terminated with a negative model index")
+        );
+      }
+
+      const auto& modelHeader = *reinterpret_cast<const Structs::PhysModelHeader*>(&data[offset]);
+      offset += sizeof(Structs::PhysModelHeader);
+      remainingBytes -= sizeof(Structs::PhysModelHeader);
+
+      if (modelHeader.modelIndex < 0) {
+        break;
+      }
+
+      if (remainingBytes < modelHeader.collisionDataSize + modelHeader.textSectionSize) {
+        throw Errors::OutOfBoundsAccess(
+          Enums::Lump::PhysCollide,
+          std::format(
+            "PhysCollide model header has size ({} + {}) exceeding the lump ({})",
+            modelHeader.collisionDataSize,
+            modelHeader.textSectionSize,
+            remainingBytes
+          )
+        );
+      }
+
+      physicsModels.push_back(
+        PhysModel{
+          .modelIndex = modelHeader.modelIndex,
+          .solidCount = modelHeader.solidCount,
+          .collisionData = data.subspan(offset, modelHeader.collisionDataSize),
+          .textSectionData = data.subspan(offset + modelHeader.collisionDataSize, modelHeader.textSectionSize),
+        }
+      );
+      offset += modelHeader.collisionDataSize + modelHeader.textSectionSize;
+    }
+
+    return std::move(physicsModels);
   }
 }

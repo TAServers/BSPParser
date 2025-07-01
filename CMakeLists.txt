@@ -32,6 +32,7 @@ add_library(BSPParser
         src/texture-accessors.hpp
         src/texture-accessors.cpp
         src/helpers/vector-maths.hpp
+        src/structs/physics.hpp
 )
 
 target_include_directories(
