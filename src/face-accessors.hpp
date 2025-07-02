@@ -13,7 +13,10 @@ namespace BspParser::Accessors {
     Structs::Vector2 uv;
   };
 
-  void iterateModels(const Bsp& bsp, const std::function<void(const Structs::Model& model)>& iteratee);
+  void iterateModels(
+    const Bsp& bsp,
+    const std::function<void(const Structs::Model& model, const std::vector<Bsp::PhysModel>& physicsModels)>& iteratee
+  );
 
   void iterateFaces(
     const Bsp& bsp,

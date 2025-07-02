@@ -1,5 +1,6 @@
 #include "face-accessors.hpp"
 #include "helpers/vector-maths.hpp"
+#include <map>
 
 namespace BspParser::Accessors {
   namespace {
@@ -66,9 +67,21 @@ namespace BspParser::Accessors {
     }
   }
 
-  void iterateModels(const Bsp& bsp, const std::function<void(const Structs::Model& model)>& iteratee) {
-    for (const auto& model : bsp.models) {
-      iteratee(model);
+  void iterateModels(
+    const Bsp& bsp,
+    const std::function<void(const Structs::Model& model, const std::vector<Bsp::PhysModel>& physicsModels)>& iteratee
+  ) {
+    std::vector<Bsp::PhysModel> physicsModels;
+
+    for (int32_t modelIndex = 0; modelIndex < bsp.models.size(); modelIndex++) {
+      physicsModels.clear();
+      for (const auto& physModel : bsp.physicsModels) {
+        if (physModel.modelIndex == modelIndex) {
+          physicsModels.push_back(physModel);
+        }
+      }
+
+      iteratee(bsp.models[modelIndex], physicsModels);
     }
   }
 
