@@ -1,6 +1,6 @@
 #pragma once
 
-#include "structs/zip.hpp"
+#include "../structs/zip.hpp"
 #include <span>
 #include <string_view>
 #include <vector>

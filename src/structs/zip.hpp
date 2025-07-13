@@ -1,6 +1,6 @@
 #pragma once
 
-#include "enums/zip.hpp"
+#include "../enums/zip.hpp"
 #include <cstdint>
 
 /**
@@ -10,7 +10,7 @@ namespace BspParser::Structs::Zip {
 #pragma pack(push, 1)
 
   struct EndOfCentralDirectoryRecord {
-    constexpr auto SIGNATURE = 0x06054b50;
+    static constexpr auto SIGNATURE = 0x06054b50;
 
     uint32_t signature;
     uint16_t thisDiskNumber;
@@ -23,7 +23,7 @@ namespace BspParser::Structs::Zip {
   };
 
   struct FileHeader {
-    constexpr auto SIGNATURE = 0x02014b50;
+    static constexpr auto SIGNATURE = 0x02014b50;
 
     uint32_t signature;
     uint16_t versionMadeBy;
@@ -45,7 +45,7 @@ namespace BspParser::Structs::Zip {
   };
 
   struct LocalFileHeader {
-    constexpr auto SIGNATURE = 0x04034b50;
+    static constexpr auto SIGNATURE = 0x04034b50;
 
     uint32_t signature;
     uint16_t versionNeededToExtract;

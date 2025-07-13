@@ -7,7 +7,9 @@ namespace BspParser::Zip {
   using namespace Structs::Zip;
 
   namespace {
-    std::optional<EndOfCentralDirectoryRecord> findEndOfCentralDirectoryRecord(std::span<const std::byte> zipData) {
+    std::optional<EndOfCentralDirectoryRecord> findEndOfCentralDirectoryRecord(
+      const std::span<const std::byte> zipData
+    ) {
       const auto firstOffset = zipData.size_bytes() - sizeof(EndOfCentralDirectoryRecord);
       const auto lastOffset = firstOffset - std::numeric_limits<uint16_t>::max();
 
@@ -24,17 +26,26 @@ namespace BspParser::Zip {
       return std::nullopt;
     }
 
-    std::span<const FileHeader> readFileHeaders(
-      std::span<const std::byte> zipData, const EndOfCentralDirectoryRecord& eocdRecord
+    std::vector<FileHeader> readFileHeaders(
+      const std::span<const std::byte> zipData, const EndOfCentralDirectoryRecord& eocdRecord
     ) {
-      return std::span{
-        reinterpret_cast<const FileHeader*>(&zipData[eocdRecord.startOfCentralDirOffset]),
-        eocdRecord.numCentralDirectoryEntriesInThisDisk
-      };
+      std::vector<FileHeader> headers;
+      headers.reserve(eocdRecord.numCentralDirectoryEntriesInThisDisk);
+
+      size_t offset = eocdRecord.startOfCentralDirOffset;
+      for (uint16_t fileHeaderIndex = 0; fileHeaderIndex < eocdRecord.numCentralDirectoryEntriesInThisDisk;
+           fileHeaderIndex++) {
+        const auto& header = *reinterpret_cast<const FileHeader*>(&zipData[offset]);
+        headers.push_back(header);
+
+        offset += sizeof(FileHeader) + header.fileNameLength + header.extraFieldLength + header.fileCommentLength;
+      }
+
+      return std::move(headers);
     }
   }
 
-  std::vector<ZipFileEntry> readZipFileEntries(std::span<std::byte const> zipData) {
+  std::vector<ZipFileEntry> readZipFileEntries(const std::span<std::byte const> zipData) {
     const auto eocdRecord = findEndOfCentralDirectoryRecord(zipData);
     if (!eocdRecord.has_value()) {
       throw std::runtime_error("Unable to find zip file end of central directory record");
