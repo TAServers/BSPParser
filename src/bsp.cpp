@@ -45,6 +45,8 @@ namespace BspParser {
 
     physicsModels = parsePhysCollideLump();
 
+    compressedPakfile = parsePakfileLump();
+
     for (const auto& gameLump : gameLumps) {
       switch (gameLump.id) {
         case Enums::GameLumpID::DetailProps:
@@ -198,5 +200,36 @@ namespace BspParser {
     }
 
     return std::move(physicsModels);
+  }
+
+  std::vector<Zip::ZipFileEntry> Bsp::parsePakfileLump() const {
+    const auto& lumpHeader = header->lumps.at(static_cast<size_t>(Enums::Lump::PakFile));
+
+    if (lumpHeader.offset < 0) {
+      throw Errors::InvalidBody(
+        Enums::Lump::PakFile, std::format("Lump header has a negative offset ({})", lumpHeader.offset)
+      );
+    }
+
+    if (lumpHeader.length < 0) {
+      throw Errors::InvalidBody(
+        Enums::Lump::PakFile, std::format("Lump header has a negative length ({})", lumpHeader.length)
+      );
+    }
+
+    if (lumpHeader.offset + lumpHeader.length > data.size_bytes()) {
+      throw Errors::OutOfBoundsAccess(
+        Enums::Lump::PakFile,
+        std::format(
+          "Lump header has offset + length ({}) overrunning the file ({})",
+          lumpHeader.offset + lumpHeader.length,
+          data.size_bytes()
+        )
+      );
+    }
+
+    const auto pakfileData = data.subspan(lumpHeader.offset, lumpHeader.length);
+
+    return Zip::readZipFileEntries(pakfileData);
   }
 }

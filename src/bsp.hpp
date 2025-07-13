@@ -3,6 +3,7 @@
 #include "errors.hpp"
 #include "enums/lump.hpp"
 #include "helpers/offset-data-view.hpp"
+#include "helpers/zip.hpp"
 #include "structs/common.hpp"
 #include "structs/detail-props.hpp"
 #include "structs/displacements.hpp"
@@ -60,6 +61,8 @@ namespace BspParser {
     std::span<const Structs::DispVert> displacementVertices;
 
     std::vector<PhysModel> physicsModels;
+
+    std::vector<Zip::ZipFileEntry> compressedPakfile;
 
     // std::span<const Structs::DetailObjectDict> detailObjectDictionary;
     // std::span<const Structs::DetailObject> detailObjects;
@@ -123,7 +126,8 @@ namespace BspParser {
 
     [[nodiscard]] std::vector<PhysModel> parsePhysCollideLump() const;
 
-    template <class StaticProp> std::span<const StaticProp> parseStaticPropLump(const Structs::GameLump& lumpHeader) {
+    template <class StaticProp>
+    [[nodiscard]] std::span<const StaticProp> parseStaticPropLump(const Structs::GameLump& lumpHeader) {
       if (lumpHeader.offset < 0) {
         throw Errors::InvalidBody(
           Enums::Lump::GameLump,
@@ -176,5 +180,7 @@ namespace BspParser {
 
       return props;
     }
+
+    [[nodiscard]] std::vector<Zip::ZipFileEntry> parsePakfileLump() const;
   };
 }
