@@ -33,6 +33,10 @@ add_library(BSPParser
         src/texture-accessors.cpp
         src/helpers/vector-maths.hpp
         src/structs/physics.hpp
+        src/structs/zip.hpp
+        src/helpers/zip.hpp
+        src/helpers/zip.cpp
+        src/enums/zip.hpp
 )
 
 target_include_directories(
