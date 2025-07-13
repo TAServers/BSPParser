@@ -33,6 +33,10 @@ namespace BspParser {
     [[nodiscard]] std::span<const T> parseStructArray(
       const size_t relativeOffset, const size_t count, const char* errorMessage
     ) const {
+      if (count == 0) {
+        return std::span<const T>(static_cast<const T*>(nullptr), 0);
+      }
+
       const auto absoluteOffset = offset + relativeOffset;
       checkBounds(absoluteOffset, sizeof(T) * count, data.size_bytes(), errorMessage);
 
