@@ -1,6 +1,7 @@
-#include "face-accessors.hpp"
-#include "face-triangulation.hpp"
+#include "./face-accessors.hpp"
 #include "../helpers/vector-maths.hpp"
+#include "./displacements/indices.hpp"
+#include "./face-triangulation.hpp"
 
 namespace BspParser::Accessors {
   namespace {
@@ -131,7 +132,7 @@ namespace BspParser::Accessors {
     const auto& dispInfo = bsp.displacementInfos[face.dispInfo];
 
     const auto numEdgesPerAxis = 1ul << static_cast<size_t>(dispInfo.power);
-    return numEdgesPerAxis * numEdgesPerAxis * 2;
+    return numEdgesPerAxis * numEdgesPerAxis * 2 * 3; // 2 triangles per quad * 3 vertices per triangle
   }
 
   void generateVertices(
@@ -167,7 +168,7 @@ namespace BspParser::Accessors {
     const Bsp& bsp,
     const Structs::Face& face,
     const std::span<const int32_t> surfaceEdges,
-    const std::function<void(int32_t i0, int32_t i1, int32_t i2)>& iteratee
+    const std::function<void(uint32_t i0, uint32_t i1, uint32_t i2)>& iteratee
   ) {
     assertFaceCanBeTriangulated(surfaceEdges);
 
@@ -175,7 +176,7 @@ namespace BspParser::Accessors {
       Internal::generateFaceTriangleListIndices(surfaceEdges, iteratee);
     } else {
       const auto& dispInfo = bsp.displacementInfos[face.dispInfo];
-      Internal::generateDisplacementTriangleListIndices();
+      Internal::generateDisplacementTriangleListIndices(dispInfo, iteratee);
     }
   }
 }
