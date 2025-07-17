@@ -1,66 +1,10 @@
 #include "face-accessors.hpp"
-#include "helpers/vector-maths.hpp"
-#include <map>
+#include "face-triangulation.hpp"
+#include "../helpers/vector-maths.hpp"
 
 namespace BspParser::Accessors {
   namespace {
-    const Structs::Vector& getVertexPosition(const Bsp& bsp, const int32_t surfaceEdge) {
-      const auto edgeIndex = std::abs(surfaceEdge);
-      if (edgeIndex >= bsp.edges.size()) {
-        throw Errors::OutOfBoundsAccess(
-          Enums::Lump::SurfaceEdges,
-          std::format("Surface edge index '{}' is out of bounds of the edges lump", edgeIndex)
-        );
-      }
-
-      const auto& edge = bsp.edges[edgeIndex];
-      const auto firstVertexIndex = surfaceEdge < 0 ? edge.vertices.back() : edge.vertices.front();
-
-      if (firstVertexIndex >= bsp.vertices.size()) {
-        throw Errors::OutOfBoundsAccess(
-          Enums::Lump::Edges,
-          std::format("Edge vertex index '{}' is out of bounds of the vertices lump", firstVertexIndex)
-        );
-      }
-
-      return bsp.vertices[firstVertexIndex];
-    }
-
-    Structs::Vector4 calculateTangent(const Structs::Vector& normal, const Structs::TexInfo& textureInfo) {
-      const auto& sAxis = textureInfo.textureVecs[0];
-      const auto& tAxis = textureInfo.textureVecs[1];
-
-      // https://terathon.com/blog/tangent-space.html
-      const auto tangent = normalise(sub(xyz(sAxis), mul(normal, dot(normal, xyz(sAxis)))));
-      const auto handedness = dot(cross(normal, tangent), xyz(tAxis)) < 0.f ? -1.f : 1.f;
-
-      return Structs::Vector4{
-        .x = tangent.x,
-        .y = tangent.y,
-        .z = tangent.z,
-        .w = handedness,
-      };
-    }
-
-    Structs::Vector2 calculateUvs(
-      const Structs::Vector& position, const Structs::TexInfo& textureInfo, const Structs::TexData& textureData
-    ) {
-      const auto& sAxis = textureInfo.textureVecs[0];
-      const auto& tAxis = textureInfo.textureVecs[1];
-
-      return Structs::Vector2{
-        .u = (dot(xyz(sAxis), position) + sAxis.w) / static_cast<float>(textureData.width),
-        .v = (dot(xyz(tAxis), position) + tAxis.w) / static_cast<float>(textureData.height),
-      };
-    }
-
-    void assertFaceCanBeDirectlyTriangulated(const Structs::Face& face, const std::span<const int32_t> surfaceEdges) {
-      if (face.dispInfo >= 0) {
-        throw std::runtime_error(
-          "Cannot triangulate and draw displacement faces directly. Use the displacement accessors instead or triangulate manually if that's definitely what you want."
-        );
-      }
-
+    void assertFaceCanBeTriangulated(const std::span<const int32_t> surfaceEdges) {
       if (surfaceEdges.size() < 3) {
         throw std::runtime_error("Face has less than 3 required edges needed to triangulate");
       }
@@ -162,19 +106,35 @@ namespace BspParser::Accessors {
     }
   }
 
-  size_t getFaceVertexCount(const Structs::Face& face, const std::span<const int32_t> surfaceEdges) {
-    assertFaceCanBeDirectlyTriangulated(face, surfaceEdges);
+  size_t getVertexCount(const Bsp& bsp, const Structs::Face& face, const std::span<const int32_t> surfaceEdges) {
+    assertFaceCanBeTriangulated(surfaceEdges);
 
-    return surfaceEdges.size();
+    if (face.dispInfo < 0) {
+      return surfaceEdges.size();
+    }
+
+    const auto& dispInfo = bsp.displacementInfos[face.dispInfo];
+
+    const auto numVerticesPerAxis = (1ul << static_cast<size_t>(dispInfo.power)) + 1;
+    return numVerticesPerAxis * numVerticesPerAxis;
   }
 
-  size_t getFaceTriangleListIndexCount(const Structs::Face& face, const std::span<const int32_t> surfaceEdges) {
-    assertFaceCanBeDirectlyTriangulated(face, surfaceEdges);
+  size_t getTriangleListIndexCount(
+    const Bsp& bsp, const Structs::Face& face, const std::span<const int32_t> surfaceEdges
+  ) {
+    assertFaceCanBeTriangulated(surfaceEdges);
 
-    return (surfaceEdges.size() - 2) * 3;
+    if (face.dispInfo < 0) {
+      return (surfaceEdges.size() - 2) * 3;
+    }
+
+    const auto& dispInfo = bsp.displacementInfos[face.dispInfo];
+
+    const auto numEdgesPerAxis = 1ul << static_cast<size_t>(dispInfo.power);
+    return numEdgesPerAxis * numEdgesPerAxis * 2;
   }
 
-  void generateFaceVertices(
+  void generateVertices(
     const Bsp& bsp,
     const Structs::Face& face,
     const Structs::Plane& plane,
@@ -182,7 +142,7 @@ namespace BspParser::Accessors {
     const std::span<const int32_t> surfaceEdges,
     const std::function<void(const Vertex& vertex)>& iteratee
   ) {
-    assertFaceCanBeDirectlyTriangulated(face, surfaceEdges);
+    assertFaceCanBeTriangulated(surfaceEdges);
 
     if (textureInfo.texData < 0 || textureInfo.texData >= bsp.textureDatas.size()) {
       throw Errors::OutOfBoundsAccess(
@@ -195,33 +155,27 @@ namespace BspParser::Accessors {
 
     const auto& textureData = bsp.textureDatas[textureInfo.texData];
 
-    // Dev wiki says face.side is non-zero when the plane faces into the face, but inverting the normal based on that produces incorrect results
-    const auto normal = plane.normal;
-
-    for (const auto& surfEdge : surfaceEdges) {
-      const auto& position = getVertexPosition(bsp, surfEdge);
-
-      iteratee(
-        Vertex{
-          .position = position,
-          .normal = normal,
-          .tangent = calculateTangent(normal, textureInfo),
-          .uv = calculateUvs(position, textureInfo, textureData),
-        }
-      );
+    if (face.dispInfo < 0) {
+      Internal::generateFaceVertices(bsp, plane, textureInfo, textureData, surfaceEdges, iteratee);
+    } else {
+      const auto& dispInfo = bsp.displacementInfos[face.dispInfo];
+      Internal::generateDisplacementVertices();
     }
   }
 
-  void generateFaceTriangleList(
+  void generateTriangleListIndices(
+    const Bsp& bsp,
     const Structs::Face& face,
     const std::span<const int32_t> surfaceEdges,
     const std::function<void(int32_t i0, int32_t i1, int32_t i2)>& iteratee
   ) {
-    assertFaceCanBeDirectlyTriangulated(face, surfaceEdges);
+    assertFaceCanBeTriangulated(surfaceEdges);
 
-    // First and last edge are ignored as they would create duplicate/degenerate/overlapping triangles
-    for (int32_t edgeIndex = 1; edgeIndex < surfaceEdges.size() - 1; edgeIndex++) {
-      iteratee(0, edgeIndex, edgeIndex + 1);
+    if (face.dispInfo < 0) {
+      Internal::generateFaceTriangleListIndices(surfaceEdges, iteratee);
+    } else {
+      const auto& dispInfo = bsp.displacementInfos[face.dispInfo];
+      Internal::generateDisplacementTriangleListIndices();
     }
   }
 }

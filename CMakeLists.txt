@@ -13,8 +13,8 @@ add_library(BSPParser
         src/helpers/offset-data-view.hpp
         src/structs/common.hpp
         src/enums/surface.hpp
-        src/face-accessors.hpp
-        src/face-accessors.cpp
+        src/accessors/face-accessors.hpp
+        src/accessors/face-accessors.cpp
         src/enums/lump.hpp
         src/enums/props.hpp
         src/structs/headers.hpp
@@ -25,21 +25,21 @@ add_library(BSPParser
         src/structs/detail-props.hpp
         src/structs/static-props.hpp
         src/structs/models.hpp
-        src/displacement-accessors.hpp
-        src/displacement-accessors.cpp
-        src/prop-accessors.hpp
-        src/prop-accessors.cpp
-        src/texture-accessors.hpp
-        src/texture-accessors.cpp
+        src/accessors/prop-accessors.hpp
+        src/accessors/prop-accessors.cpp
+        src/accessors/texture-accessors.hpp
+        src/accessors/texture-accessors.cpp
         src/helpers/vector-maths.hpp
         src/structs/physics.hpp
         src/structs/zip.hpp
         src/helpers/zip.hpp
         src/helpers/zip.cpp
         src/enums/zip.hpp
-)
-
-target_include_directories(
-        BSPParser PRIVATE
-        "src"
+        src/accessors/vertex.hpp
+        src/accessors/face-triangulation.hpp
+        src/accessors/face-triangulation.cpp
+        src/accessors/displacements/indices.hpp
+        src/accessors/displacements/vertices.hpp
+        src/accessors/displacements/indices.cpp
+        src/accessors/displacements/vertices.cpp
 )

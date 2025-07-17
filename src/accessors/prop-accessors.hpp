@@ -1,6 +1,6 @@
 #pragma once
 
-#include "bsp.hpp"
+#include "../bsp.hpp"
 #include <functional>
 
 namespace BspParser::Accessors {

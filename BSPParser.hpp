@@ -5,4 +5,7 @@
  */
 namespace BspParser {}
 
-#include "src/bsp.hpp"
+#include "./src/accessors/face-accessors.hpp"
+#include "./src/accessors/prop-accessors.hpp"
+#include "./src/accessors/texture-accessors.hpp"
+#include "./src/bsp.hpp"
