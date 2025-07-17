@@ -85,28 +85,13 @@ namespace BspParser {
   std::span<const Structs::GameLump> Bsp::parseGameLumpHeaders() const {
     const auto& lumpHeader = header->lumps.at(static_cast<size_t>(Enums::Lump::GameLump));
 
-    if (lumpHeader.offset < 0) {
-      throw Errors::InvalidBody(
-        Enums::Lump::GameLump, std::format("Lump header has a negative offset ({})", lumpHeader.offset)
-      );
-    }
+    assertLumpHeaderValid(Enums::Lump::GameLump, lumpHeader);
 
     if (lumpHeader.length < sizeof(int32_t)) {
       throw Errors::InvalidBody(
         Enums::Lump::GameLump,
         std::format(
           "Game lump header has length ({}) less than the single int32 needed for the count", lumpHeader.length
-        )
-      );
-    }
-
-    if (lumpHeader.offset + lumpHeader.length > data.size_bytes()) {
-      throw Errors::OutOfBoundsAccess(
-        Enums::Lump::GameLump,
-        std::format(
-          "Lump header has offset + length ({}) overrunning the file ({})",
-          lumpHeader.offset + lumpHeader.length,
-          data.size_bytes()
         )
       );
     }
@@ -132,29 +117,7 @@ namespace BspParser {
 
   std::vector<Bsp::PhysModel> Bsp::parsePhysCollideLump() const {
     const auto& lumpHeader = header->lumps.at(static_cast<size_t>(Enums::Lump::PhysCollide));
-
-    if (lumpHeader.offset < 0) {
-      throw Errors::InvalidBody(
-        Enums::Lump::PhysCollide, std::format("Lump header has a negative offset ({})", lumpHeader.offset)
-      );
-    }
-
-    if (lumpHeader.length < 0) {
-      throw Errors::InvalidBody(
-        Enums::Lump::PhysCollide, std::format("Lump header has a negative length ({})", lumpHeader.length)
-      );
-    }
-
-    if (lumpHeader.offset + lumpHeader.length > data.size_bytes()) {
-      throw Errors::OutOfBoundsAccess(
-        Enums::Lump::PhysCollide,
-        std::format(
-          "Lump header has offset + length ({}) overrunning the file ({})",
-          lumpHeader.offset + lumpHeader.length,
-          data.size_bytes()
-        )
-      );
-    }
+    assertLumpHeaderValid(Enums::Lump::PhysCollide, lumpHeader);
 
     std::vector<PhysModel> physicsModels;
 
@@ -204,22 +167,25 @@ namespace BspParser {
 
   std::vector<Zip::ZipFileEntry> Bsp::parsePakfileLump() const {
     const auto& lumpHeader = header->lumps.at(static_cast<size_t>(Enums::Lump::PakFile));
+    assertLumpHeaderValid(Enums::Lump::PakFile, lumpHeader);
 
+    const auto pakfileData = data.subspan(lumpHeader.offset, lumpHeader.length);
+
+    return Zip::readZipFileEntries(pakfileData);
+  }
+
+  void Bsp::assertLumpHeaderValid(const Enums::Lump lump, const Structs::Lump& lumpHeader) const {
     if (lumpHeader.offset < 0) {
-      throw Errors::InvalidBody(
-        Enums::Lump::PakFile, std::format("Lump header has a negative offset ({})", lumpHeader.offset)
-      );
+      throw Errors::InvalidBody(lump, std::format("Lump header has a negative offset ({})", lumpHeader.offset));
     }
 
     if (lumpHeader.length < 0) {
-      throw Errors::InvalidBody(
-        Enums::Lump::PakFile, std::format("Lump header has a negative length ({})", lumpHeader.length)
-      );
+      throw Errors::InvalidBody(lump, std::format("Lump header has a negative length ({})", lumpHeader.length));
     }
 
     if (lumpHeader.offset + lumpHeader.length > data.size_bytes()) {
       throw Errors::OutOfBoundsAccess(
-        Enums::Lump::PakFile,
+        lump,
         std::format(
           "Lump header has offset + length ({}) overrunning the file ({})",
           lumpHeader.offset + lumpHeader.length,
@@ -227,9 +193,5 @@ namespace BspParser {
         )
       );
     }
-
-    const auto pakfileData = data.subspan(lumpHeader.offset, lumpHeader.length);
-
-    return Zip::readZipFileEntries(pakfileData);
   }
 }

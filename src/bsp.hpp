@@ -82,24 +82,7 @@ namespace BspParser {
     std::span<const LumpType> parseLump(Enums::Lump lump, size_t maxItems = std::numeric_limits<size_t>::max()) {
       const auto& lumpHeader = header->lumps.at(static_cast<size_t>(lump));
 
-      if (lumpHeader.offset < 0) {
-        throw Errors::InvalidBody(lump, std::format("Lump header has a negative offset ({})", lumpHeader.offset));
-      }
-
-      if (lumpHeader.length < 0) {
-        throw Errors::InvalidBody(lump, std::format("Lump header has a negative length ({})", lumpHeader.length));
-      }
-
-      if (lumpHeader.offset + lumpHeader.length > data.size_bytes()) {
-        throw Errors::OutOfBoundsAccess(
-          lump,
-          std::format(
-            "Lump header has offset + length ({}) overrunning the file ({})",
-            lumpHeader.offset + lumpHeader.length,
-            data.size_bytes()
-          )
-        );
-      }
+      assertLumpHeaderValid(lump, lumpHeader);
 
       if (lumpHeader.length % sizeof(LumpType) != 0) {
         throw Errors::InvalidBody(
@@ -182,5 +165,7 @@ namespace BspParser {
     }
 
     [[nodiscard]] std::vector<Zip::ZipFileEntry> parsePakfileLump() const;
+
+    void assertLumpHeaderValid(Enums::Lump lump, const Structs::Lump& lumpHeader) const;
   };
 }
