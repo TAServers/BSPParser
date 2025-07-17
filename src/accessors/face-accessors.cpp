@@ -1,6 +1,7 @@
 #include "./face-accessors.hpp"
 #include "../helpers/vector-maths.hpp"
 #include "./displacements/indices.hpp"
+#include "./displacements/vertices.hpp"
 #include "./face-triangulation.hpp"
 
 namespace BspParser::Accessors {
@@ -160,7 +161,7 @@ namespace BspParser::Accessors {
       Internal::generateFaceVertices(bsp, plane, textureInfo, textureData, surfaceEdges, iteratee);
     } else {
       const auto& dispInfo = bsp.displacementInfos[face.dispInfo];
-      Internal::generateDisplacementVertices();
+      Internal::generateDisplacementVertices(bsp, dispInfo, textureInfo, surfaceEdges, iteratee);
     }
   }
 

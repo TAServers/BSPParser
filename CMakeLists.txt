@@ -42,4 +42,6 @@ add_library(BSPParser
         src/accessors/displacements/vertices.hpp
         src/accessors/displacements/indices.cpp
         src/accessors/displacements/vertices.cpp
+        src/accessors/get-vertex-position.cpp
+        src/accessors/get-vertex-position.hpp
 )

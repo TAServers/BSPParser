@@ -1,30 +1,9 @@
 #include "face-triangulation.hpp"
+#include "get-vertex-position.hpp"
 #include "../helpers/vector-maths.hpp"
 
 namespace BspParser::Accessors::Internal {
   namespace {
-    const Structs::Vector& getVertexPosition(const Bsp& bsp, const int32_t surfaceEdge) {
-      const auto edgeIndex = std::abs(surfaceEdge);
-      if (edgeIndex >= bsp.edges.size()) {
-        throw Errors::OutOfBoundsAccess(
-          Enums::Lump::SurfaceEdges,
-          std::format("Surface edge index '{}' is out of bounds of the edges lump", edgeIndex)
-        );
-      }
-
-      const auto& edge = bsp.edges[edgeIndex];
-      const auto firstVertexIndex = surfaceEdge < 0 ? edge.vertices.back() : edge.vertices.front();
-
-      if (firstVertexIndex >= bsp.vertices.size()) {
-        throw Errors::OutOfBoundsAccess(
-          Enums::Lump::Edges,
-          std::format("Edge vertex index '{}' is out of bounds of the vertices lump", firstVertexIndex)
-        );
-      }
-
-      return bsp.vertices[firstVertexIndex];
-    }
-
     Structs::Vector4 calculateTangent(const Structs::Vector& normal, const Structs::TexInfo& textureInfo) {
       const auto& sAxis = textureInfo.textureVecs[0];
       const auto& tAxis = textureInfo.textureVecs[1];
@@ -80,7 +59,8 @@ namespace BspParser::Accessors::Internal {
   }
 
   void generateFaceTriangleListIndices(
-    const std::span<const int32_t> surfaceEdges, const std::function<void(uint32_t i0, uint32_t i1, uint32_t i2)>& iteratee
+    const std::span<const int32_t> surfaceEdges,
+    const std::function<void(uint32_t i0, uint32_t i1, uint32_t i2)>& iteratee
   ) {
     // First and last edge are ignored as they would create duplicate/degenerate/overlapping triangles
     for (uint32_t edgeIndex = 1; edgeIndex < surfaceEdges.size() - 1; edgeIndex++) {

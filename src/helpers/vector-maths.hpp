@@ -1,6 +1,6 @@
 #pragma once
 
-#include "structs/common.hpp"
+#include "../structs/common.hpp"
 #include <cmath>
 
 namespace BspParser {
