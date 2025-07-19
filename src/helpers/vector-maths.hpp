@@ -8,6 +8,13 @@ namespace BspParser {
     return {.x = v.x, .y = v.y, .z = v.z};
   }
 
+  inline Structs::Vector2 add(const Structs::Vector2& a, const Structs::Vector2& b) {
+    return Structs::Vector2{
+      .x = a.x + b.x,
+      .y = a.y + b.y,
+    };
+  }
+
   inline Structs::Vector add(const Structs::Vector& a, const Structs::Vector& b) {
     return Structs::Vector{
       .x = a.x + b.x,
@@ -16,11 +23,25 @@ namespace BspParser {
     };
   }
 
+  inline Structs::Vector2 sub(const Structs::Vector2& a, const Structs::Vector2& b) {
+    return Structs::Vector2{
+      .x = a.x - b.x,
+      .y = a.y - b.y,
+    };
+  }
+
   inline Structs::Vector sub(const Structs::Vector& a, const Structs::Vector& b) {
     return Structs::Vector{
       .x = a.x - b.x,
       .y = a.y - b.y,
       .z = a.z - b.z,
+    };
+  }
+
+  inline Structs::Vector2 mul(const Structs::Vector2& a, const float b) {
+    return Structs::Vector2{
+      .x = a.x * b,
+      .y = a.y * b,
     };
   }
 

@@ -1,38 +1,10 @@
-#include "face-triangulation.hpp"
-#include "get-vertex-position.hpp"
+#include "./face-triangulation.hpp"
 #include "../helpers/vector-maths.hpp"
+#include "./calculate-tangent.hpp"
+#include "./calculate-uvs.hpp"
+#include "./get-vertex-position.hpp"
 
 namespace BspParser::Accessors::Internal {
-  namespace {
-    Structs::Vector4 calculateTangent(const Structs::Vector& normal, const Structs::TexInfo& textureInfo) {
-      const auto& sAxis = textureInfo.textureVecs[0];
-      const auto& tAxis = textureInfo.textureVecs[1];
-
-      // https://terathon.com/blog/tangent-space.html
-      const auto tangent = normalise(sub(xyz(sAxis), mul(normal, dot(normal, xyz(sAxis)))));
-      const auto handedness = dot(cross(normal, tangent), xyz(tAxis)) < 0.f ? -1.f : 1.f;
-
-      return Structs::Vector4{
-        .x = tangent.x,
-        .y = tangent.y,
-        .z = tangent.z,
-        .w = handedness,
-      };
-    }
-
-    Structs::Vector2 calculateUvs(
-      const Structs::Vector& position, const Structs::TexInfo& textureInfo, const Structs::TexData& textureData
-    ) {
-      const auto& sAxis = textureInfo.textureVecs[0];
-      const auto& tAxis = textureInfo.textureVecs[1];
-
-      return Structs::Vector2{
-        .u = (dot(xyz(sAxis), position) + sAxis.w) / static_cast<float>(textureData.width),
-        .v = (dot(xyz(tAxis), position) + tAxis.w) / static_cast<float>(textureData.height),
-      };
-    }
-  }
-
   void generateFaceVertices(
     const Bsp& bsp,
     const Structs::Plane& plane,

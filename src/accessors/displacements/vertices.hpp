@@ -10,6 +10,7 @@ namespace BspParser::Accessors::Internal {
     const Bsp& bsp,
     const Structs::DispInfo& dispInfo,
     const Structs::TexInfo& textureInfo,
+    const Structs::TexData& textureData,
     std::span<const int32_t> surfaceEdges,
     const std::function<void(const Vertex& vertex)>& iteratee
   );

@@ -44,4 +44,11 @@ add_library(BSPParser
         src/accessors/displacements/vertices.cpp
         src/accessors/get-vertex-position.cpp
         src/accessors/get-vertex-position.hpp
+        src/accessors/calculate-tangent.cpp
+        src/accessors/calculate-tangent.hpp
+        src/accessors/calculate-uvs.cpp
+        src/accessors/calculate-uvs.hpp
+        src/accessors/displacements/displacement.cpp
+        src/accessors/displacements/displacement.hpp
+        src/accessors/displacements/calculate-normal.cpp
 )

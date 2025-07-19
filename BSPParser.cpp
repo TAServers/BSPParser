@@ -26,13 +26,6 @@ void BSPMap::Triangulate() {
     Displacements::GenerateDispSurfTangentSpaces(
       pDispInfo, mpPlanes + pFace->planeNum, mpTexInfos + pFace->texInfo, disp
     );
-
-    float faceUVs[4][2];
-    for (int i = 0; i < 4; i++) {
-      CalcUVs(pFace->texInfo, corners + i, faceUVs[i]);
-    }
-
-    Displacements::GenerateDispSurfUVs(pDispInfo, faceUVs, disp);
   }
 
   try {

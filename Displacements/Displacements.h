@@ -59,7 +59,5 @@ namespace Displacements {
     Displacement& disp
   );
 
-  void GenerateDispSurfUVs(const BSPStructs::DispInfo* pDispInfo, float faceUVs[4][2], Displacement& disp);
-
   void SmoothNeighbouringDispSurfNormals(std::vector<Displacement>& displacements);
 }

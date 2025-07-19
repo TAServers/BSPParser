@@ -161,7 +161,7 @@ namespace BspParser::Accessors {
       Internal::generateFaceVertices(bsp, plane, textureInfo, textureData, surfaceEdges, iteratee);
     } else {
       const auto& dispInfo = bsp.displacementInfos[face.dispInfo];
-      Internal::generateDisplacementVertices(bsp, dispInfo, textureInfo, surfaceEdges, iteratee);
+      Internal::generateDisplacementVertices(bsp, dispInfo, textureInfo, textureData, surfaceEdges, iteratee);
     }
   }
 
