@@ -1,7 +1,7 @@
 #include "indices.hpp"
 
 namespace BspParser::Accessors::Internal {
-  void Internal::generateDisplacementTriangleListIndices(
+  void generateDisplacementTriangleListIndices(
     const Structs::DispInfo& dispInfo, const std::function<void(uint32_t i0, uint32_t i1, uint32_t i2)>& iteratee
   ) {
     const auto size = 1u << static_cast<uint32_t>(dispInfo.power);

@@ -8,5 +8,6 @@ namespace BspParser::Accessors {
     Structs::Vector normal;
     Structs::Vector4 tangent;
     Structs::Vector2 uv;
+    float alpha = 0.f;
   };
 }

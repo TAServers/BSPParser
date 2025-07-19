@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cstddef>
 
 namespace BspParser::Limits {
   constexpr size_t MIN_MAP_DISP_POWER = 2;

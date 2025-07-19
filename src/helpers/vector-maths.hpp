@@ -8,6 +8,14 @@ namespace BspParser {
     return {.x = v.x, .y = v.y, .z = v.z};
   }
 
+  inline Structs::Vector add(const Structs::Vector& a, const Structs::Vector& b) {
+    return Structs::Vector{
+      .x = a.x + b.x,
+      .y = a.y + b.y,
+      .z = a.z + b.z,
+    };
+  }
+
   inline Structs::Vector sub(const Structs::Vector& a, const Structs::Vector& b) {
     return Structs::Vector{
       .x = a.x - b.x,

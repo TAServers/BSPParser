@@ -22,7 +22,6 @@ void BSPMap::Triangulate() {
     Displacement& disp = displacements[dispIdx];
     disp.Init(pDispInfo);
 
-    Displacements::GenerateDispSurf(pDispInfo, mpDispVerts + pDispInfo->dispVertStart, corners, disp);
     Displacements::GenerateDispSurfNormals(pDispInfo, disp);
     Displacements::GenerateDispSurfTangentSpaces(
       pDispInfo, mpPlanes + pFace->planeNum, mpTexInfos + pFace->texInfo, disp

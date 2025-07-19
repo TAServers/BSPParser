@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 namespace BspParser::Structs {
   struct Vector2 {
     union {
