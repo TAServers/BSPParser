@@ -12,12 +12,11 @@ namespace BspParser::Accessors::Internal {
     const std::span<const int32_t> surfaceEdges,
     const std::function<void(const Vertex& vertex)>& iteratee
   ) {
-    const auto displacement = Displacement(bsp, dispInfo, textureInfo, textureData, surfaceEdges);
-    const auto normals = DisplacementNormals(bsp, dispInfo);
+    const auto displacement = DisplacementWithNeighbours(bsp, dispInfo, textureInfo, textureData, surfaceEdges);
 
     for (size_t y = 0; y < displacement.getNumVerticesPerAxis(); y++) {
       for (size_t x = 0; x < displacement.getNumVerticesPerAxis(); x++) {
-        const auto normal = normals.calculateNormal(x, y);
+        const auto normal = displacement.calculateNormal(x, y);
         const auto tangent = calculateTangent(normal, textureInfo);
 
         iteratee(

@@ -35,14 +35,35 @@ namespace BspParser::Accessors::Internal {
     std::array<Structs::Vector2, 2> uvIncrements;
   };
 
-  class DisplacementNormals {
+  class DisplacementWithNeighbours final : public Displacement {
   public:
-    DisplacementNormals(const Bsp& bsp, const Structs::DispInfo& dispInfo);
+    DisplacementWithNeighbours(
+      const Bsp& bsp,
+      const Structs::DispInfo& dispInfo,
+      const Structs::TexInfo& textureInfo,
+      const Structs::TexData& textureData,
+      std::span<const int32_t> surfaceEdges
+    );
 
     [[nodiscard]] Structs::Vector calculateNormal(size_t x, size_t y) const;
 
   private:
+    static constexpr uint8_t CORNER_LOWER_LEFT = 0;
+    static constexpr uint8_t CORNER_UPPER_LEFT = 1;
+    static constexpr uint8_t CORNER_UPPER_RIGHT = 2;
+    static constexpr uint8_t CORNER_LOWER_RIGHT = 3;
+
+    static constexpr uint8_t EDGE_LEFT = 0;
+    static constexpr uint8_t EDGE_TOP = 1;
+    static constexpr uint8_t EDGE_RIGHT = 2;
+    static constexpr uint8_t EDGE_BOTTOM = 3;
+
     std::array<std::vector<Displacement>, 4> edgeNeighbours;
     std::array<std::vector<Displacement>, 4> cornerNeighbours;
+
+    [[nodiscard]] std::optional<Structs::Vector> findLeftEdgeVertex(size_t x, size_t y) const;
+    [[nodiscard]] std::optional<Structs::Vector> findRightEdgeVertex(size_t x, size_t y) const;
+    [[nodiscard]] std::optional<Structs::Vector> findTopEdgeVertex(size_t x, size_t y) const;
+    [[nodiscard]] std::optional<Structs::Vector> findBottomEdgeVertex(size_t x, size_t y) const;
   };
 }
