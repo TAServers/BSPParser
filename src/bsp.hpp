@@ -1,6 +1,7 @@
 #pragma once
 
 #include "errors.hpp"
+#include "displacements/triangulated-displacement.hpp"
 #include "enums/lump.hpp"
 #include "helpers/offset-data-view.hpp"
 #include "helpers/zip.hpp"
@@ -59,6 +60,7 @@ namespace BspParser {
 
     std::span<const Structs::DispInfo> displacementInfos;
     std::span<const Structs::DispVert> displacementVertices;
+    std::vector<TriangulatedDisplacement> displacements;
 
     std::vector<PhysModel> physicsModels;
 
@@ -167,5 +169,9 @@ namespace BspParser {
     [[nodiscard]] std::vector<Zip::ZipFileEntry> parsePakfileLump() const;
 
     void assertLumpHeaderValid(Enums::Lump lump, const Structs::Lump& lumpHeader) const;
+
+    [[nodiscard]] TriangulatedDisplacement createTriangulatedDisplacement(
+      const Structs::DispInfo& displacementInfo
+    ) const;
   };
 }

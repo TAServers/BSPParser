@@ -1,7 +1,5 @@
 #include "./face-accessors.hpp"
 #include "../helpers/vector-maths.hpp"
-#include "./displacements/indices.hpp"
-#include "./displacements/vertices.hpp"
 #include "./face-triangulation.hpp"
 
 namespace BspParser::Accessors {
@@ -115,10 +113,7 @@ namespace BspParser::Accessors {
       return surfaceEdges.size();
     }
 
-    const auto& dispInfo = bsp.displacementInfos[face.dispInfo];
-
-    const auto numVerticesPerAxis = (1ul << static_cast<size_t>(dispInfo.power)) + 1;
-    return numVerticesPerAxis * numVerticesPerAxis;
+    return bsp.displacements[face.dispInfo].vertices.size();
   }
 
   size_t getTriangleListIndexCount(
@@ -130,10 +125,7 @@ namespace BspParser::Accessors {
       return (surfaceEdges.size() - 2) * 3;
     }
 
-    const auto& dispInfo = bsp.displacementInfos[face.dispInfo];
-
-    const auto numEdgesPerAxis = 1ul << static_cast<size_t>(dispInfo.power);
-    return numEdgesPerAxis * numEdgesPerAxis * 2 * 3; // 2 triangles per quad * 3 vertices per triangle
+    return bsp.displacements[face.dispInfo].getTriangleListIndexCount();
   }
 
   void generateVertices(
@@ -160,8 +152,11 @@ namespace BspParser::Accessors {
     if (face.dispInfo < 0) {
       Internal::generateFaceVertices(bsp, plane, textureInfo, textureData, surfaceEdges, iteratee);
     } else {
-      const auto& dispInfo = bsp.displacementInfos[face.dispInfo];
-      Internal::generateDisplacementVertices(bsp, dispInfo, textureInfo, textureData, surfaceEdges, iteratee);
+      const auto& displacement = bsp.displacements[face.dispInfo];
+
+      for (const auto& vertex : displacement.vertices) {
+        iteratee(vertex);
+      }
     }
   }
 
@@ -176,8 +171,9 @@ namespace BspParser::Accessors {
     if (face.dispInfo < 0) {
       Internal::generateFaceTriangleListIndices(surfaceEdges, iteratee);
     } else {
-      const auto& dispInfo = bsp.displacementInfos[face.dispInfo];
-      Internal::generateDisplacementTriangleListIndices(dispInfo, iteratee);
+      const auto& displacement = bsp.displacements[face.dispInfo];
+
+      displacement.generateTriangleListIndices(iteratee);
     }
   }
 }

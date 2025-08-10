@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../structs/common.hpp"
+#include "structs/common.hpp"
 
-namespace BspParser::Accessors {
+namespace BspParser {
   struct Vertex {
     Structs::Vector position;
     Structs::Vector normal;

@@ -35,20 +35,18 @@ add_library(BSPParser
         src/helpers/zip.hpp
         src/helpers/zip.cpp
         src/enums/zip.hpp
-        src/accessors/vertex.hpp
+        src/vertex.hpp
         src/accessors/face-triangulation.hpp
         src/accessors/face-triangulation.cpp
-        src/accessors/displacements/indices.hpp
-        src/accessors/displacements/vertices.hpp
-        src/accessors/displacements/indices.cpp
-        src/accessors/displacements/vertices.cpp
-        src/accessors/get-vertex-position.cpp
-        src/accessors/get-vertex-position.hpp
-        src/accessors/calculate-tangent.cpp
-        src/accessors/calculate-tangent.hpp
-        src/accessors/calculate-uvs.cpp
-        src/accessors/calculate-uvs.hpp
-        src/accessors/displacements/displacement.cpp
-        src/accessors/displacements/displacement.hpp
-        src/accessors/displacements/calculate-normal.cpp
+        src/helpers/get-vertex-position.cpp
+        src/helpers/get-vertex-position.hpp
+        src/helpers/calculate-tangent.cpp
+        src/helpers/calculate-tangent.hpp
+        src/helpers/calculate-uvs.cpp
+        src/helpers/calculate-uvs.hpp
+        src/displacements/triangulated-displacement.cpp
+        src/displacements/triangulated-displacement.hpp
+        src/displacements/generate-internal-normals.cpp
+        src/displacements/smooth-neighbouring-normals.cpp
+        src/displacements/triangulate.cpp
 )

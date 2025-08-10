@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../bsp.hpp"
-#include "./vertex.hpp"
+#include "../vertex.hpp"
 #include <functional>
 
 namespace BspParser::Accessors::Internal {

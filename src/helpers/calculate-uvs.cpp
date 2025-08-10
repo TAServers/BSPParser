@@ -1,7 +1,7 @@
 #include "calculate-uvs.hpp"
-#include "../helpers/vector-maths.hpp"
+#include "vector-maths.hpp"
 
-namespace BspParser::Accessors::Internal {
+namespace BspParser::Internal {
   Structs::Vector2 calculateUvs(
     const Structs::Vector& position, const Structs::TexInfo& textureInfo, const Structs::TexData& textureData
   ) {

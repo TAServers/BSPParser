@@ -1,10 +1,12 @@
 #include "./face-triangulation.hpp"
+#include "../helpers/calculate-tangent.hpp"
+#include "../helpers/calculate-uvs.hpp"
+#include "../helpers/get-vertex-position.hpp"
 #include "../helpers/vector-maths.hpp"
-#include "./calculate-tangent.hpp"
-#include "./calculate-uvs.hpp"
-#include "./get-vertex-position.hpp"
 
 namespace BspParser::Accessors::Internal {
+  using namespace BspParser::Internal;
+
   void generateFaceVertices(
     const Bsp& bsp,
     const Structs::Plane& plane,
@@ -17,7 +19,7 @@ namespace BspParser::Accessors::Internal {
     const auto normal = plane.normal;
 
     for (const auto& surfEdge : surfaceEdges) {
-      const auto& position = getVertexPosition(bsp, surfEdge);
+      const auto& position = getVertexPosition(bsp.edges, bsp.vertices, surfEdge);
 
       iteratee(
         Vertex{

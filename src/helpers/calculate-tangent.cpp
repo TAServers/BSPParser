@@ -1,7 +1,7 @@
 #include "calculate-tangent.hpp"
-#include "../helpers/vector-maths.hpp"
+#include "vector-maths.hpp"
 
-namespace BspParser::Accessors::Internal {
+namespace BspParser::Internal {
   Structs::Vector4 calculateTangent(const Structs::Vector& normal, const Structs::TexInfo& textureInfo) {
     const auto& sAxis = textureInfo.textureVecs[0];
     const auto& tAxis = textureInfo.textureVecs[1];

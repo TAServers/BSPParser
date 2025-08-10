@@ -43,6 +43,11 @@ namespace BspParser {
     displacementInfos = parseLump<Structs::DispInfo>(Enums::Lump::DisplacementInfo, Limits::MAX_MAP_DISPINFO);
     displacementVertices = parseLump<Structs::DispVert>(Enums::Lump::DisplacementVertices, Limits::MAX_MAP_DISP_VERTS);
 
+    displacements.reserve(displacementInfos.size());
+    for (const auto& displacementInfo : displacementInfos) {
+      displacements.push_back(createTriangulatedDisplacement(displacementInfo));
+    }
+
     physicsModels = parsePhysCollideLump();
 
     compressedPakfile = parsePakfileLump();
@@ -193,5 +198,16 @@ namespace BspParser {
         )
       );
     }
+  }
+
+  TriangulatedDisplacement Bsp::createTriangulatedDisplacement(const Structs::DispInfo& displacementInfo) const {
+    const auto& face = faces[displacementInfo.mapFace];
+    const auto& textureInfo = textureInfos[face.texInfo];
+    const auto& textureData = textureDatas[textureInfo.texData];
+    const auto surfaceEdgesForDisplacement = surfaceEdges.subspan(face.firstEdge, face.numEdges);
+
+    return TriangulatedDisplacement(
+      displacementInfo, displacementVertices, edges, vertices, surfaceEdgesForDisplacement, textureInfo, textureData
+    );
   }
 }

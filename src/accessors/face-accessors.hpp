@@ -3,7 +3,7 @@
 #include "../bsp.hpp"
 #include "../structs/geometry.hpp"
 #include "../structs/models.hpp"
-#include "./vertex.hpp"
+#include "../vertex.hpp"
 #include <functional>
 
 namespace BspParser::Accessors {
