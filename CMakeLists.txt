@@ -49,4 +49,6 @@ add_library(BSPParser
         src/displacements/generate-internal-normals.cpp
         src/displacements/smooth-neighbouring-normals.cpp
         src/displacements/triangulate.cpp
+        src/displacements/sub-edge-iterator.hpp
+        src/displacements/sub-edge-iterator.cpp
 )

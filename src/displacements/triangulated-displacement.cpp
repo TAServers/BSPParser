@@ -2,20 +2,6 @@
 
 namespace BspParser {
   namespace {
-    std::vector<uint16_t> getEdgeNeighbours(const Structs::DispNeighbour& neighbour) {
-      std::vector<uint16_t> result;
-
-      for (const auto& subNeighbour : neighbour.subNeighbors) {
-        if (!subNeighbour.isValid()) {
-          continue;
-        }
-
-        result.push_back(subNeighbour.index);
-      }
-
-      return std::move(result);
-    }
-
     std::vector<uint16_t> getCornerNeighbours(const Structs::DispCornerNeighbours& neighbours) {
       std::vector<uint16_t> result;
 
@@ -40,8 +26,8 @@ namespace BspParser {
   ) : dispInfo(dispInfo), textureInfo(textureInfo), textureData(textureData) {
     numVerticesPerAxis = (1ul << static_cast<size_t>(dispInfo.power)) + 1;
 
+    edgeNeighbours = dispInfo.edgeNeighbours;
     for (uint8_t neighbourIndex = 0; neighbourIndex < 4; neighbourIndex++) {
-      edgeNeighbours[neighbourIndex] = getEdgeNeighbours(dispInfo.edgeNeighbours[neighbourIndex]);
       cornerNeighbours[neighbourIndex] = getCornerNeighbours(dispInfo.cornerNeighbours[neighbourIndex]);
     }
 
