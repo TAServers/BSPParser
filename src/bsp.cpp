@@ -1,4 +1,5 @@
 #include "bsp.hpp"
+#include "displacements/normal-blending.hpp"
 #include "structs/physics.hpp"
 
 namespace BspParser {
@@ -47,6 +48,7 @@ namespace BspParser {
     for (const auto& displacementInfo : displacementInfos) {
       displacements.push_back(createTriangulatedDisplacement(displacementInfo));
     }
+    Internal::blendNeighbouringDisplacementNormals(displacements);
 
     physicsModels = parsePhysCollideLump();
 

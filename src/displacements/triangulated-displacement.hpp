@@ -42,8 +42,6 @@ namespace BspParser {
     std::array<Structs::DispNeighbour, 4> edgeNeighbours;
     std::array<std::vector<uint16_t>, 4> cornerNeighbours;
 
-    void smoothNeighbouringNormals(std::span<const TriangulatedDisplacement> displacements);
-
     [[nodiscard]] size_t getTriangleListIndexCount() const;
     void generateTriangleListIndices(const std::function<void(uint32_t i0, uint32_t i1, uint32_t i2)>& iteratee) const;
 

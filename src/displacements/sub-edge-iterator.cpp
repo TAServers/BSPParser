@@ -1,5 +1,4 @@
 #include "sub-edge-iterator.hpp"
-#include "input/actions.hpp"
 #include <format>
 #include <stdexcept>
 
@@ -101,11 +100,11 @@ namespace BspParser::Internal {
     const int32_t edgeIndex, const VertexCoordinate& toTransform
   ) const {
     // Not exactly sure what this represents. Extracted into a constant so at least the magic is obvious...
-    constexpr auto magic2To16th = 1 << 16;
+    constexpr auto magic2To16th = 1u << 16u;
 
     const auto [srcStart, srcEnd] = setupSpan(displacement->numVerticesPerAxis, edgeIndex, neighbourSpan);
 
-    const auto neighbourEdgeIndex = (edgeIndex + 2 + neighbourOrientation) & 3;
+    const auto neighbourEdgeIndex = (edgeIndex + 2 + neighbourOrientation) & 3u;
     const auto [destEnd, destStart] = setupSpan(neighbour->numVerticesPerAxis, neighbourEdgeIndex, neighbourSpan);
 
     const auto freeDimension = EDGE_AXES[edgeIndex];
@@ -161,54 +160,42 @@ namespace BspParser::Internal {
     tempInc[edgeAxis] = 0;
     if (neighbourPower > power) {
       increment[freeAxis] = 1;
-      tempInc[freeAxis] = 1 << (neighbourPower - power);
+      tempInc[freeAxis] = 1u << (neighbourPower - power);
     } else {
-      increment[freeAxis] = 1 << (power - neighbourPower);
+      increment[freeAxis] = 1u << (power - neighbourPower);
       tempInc[freeAxis] = 1;
     }
 
     neighbourIncrement = rotateVertexIncrement(neighbourOrientation, tempInc);
 
     if (neighbourSpan == CORNER_TO_MIDPOINT) {
-      end = sideLength >> 1;
+      end = sideLength >> 1u;
     } else {
-      end = sideLength - 1;
+      end = sideLength - 1u;
     }
   }
 
-  void SubEdgeIterator::start(
-    std::span<const TriangulatedDisplacement> displacements,
+  SubEdgeIterator::SubEdgeIterator(
     const TriangulatedDisplacement& displacement,
+    const DispSubNeighbour& subNeighbour,
+    const TriangulatedDisplacement& neighbour,
     const int32_t edgeIndex,
     const int32_t subNeighbourIndex,
     const bool shouldTouchCorners
-  ) {
-    this->displacement = &displacement;
-
-    const auto subNeighbour = getSubNeighbour(displacement, edgeIndex, subNeighbourIndex);
-    neighbour = &displacements[subNeighbour.index];
-    neighbourOrientation = subNeighbour.orientation;
-    neighbourSpan = subNeighbour.span;
-
+  ) :
+    displacement(&displacement), //
+    neighbour(&neighbour), //
+    neighbourOrientation(subNeighbour.orientation), //
+    neighbourSpan(subNeighbour.span) {
     setupEdgeIncrements(edgeIndex, subNeighbourIndex);
 
-    if (neighbour != nullptr) {
-      if (shouldTouchCorners) {
-        coordinate.x -= increment.x;
-        coordinate.y -= increment.y;
-        neighbourCoordinate.x -= neighbourIncrement.x;
-        neighbourCoordinate.y -= neighbourIncrement.y;
+    if (shouldTouchCorners) {
+      coordinate.x -= increment.x;
+      coordinate.y -= increment.y;
+      neighbourCoordinate.x -= neighbourIncrement.x;
+      neighbourCoordinate.y -= neighbourIncrement.y;
 
-        end += increment[freeAxis];
-      }
-    } else {
-      coordinate = VertexCoordinate{0, 0};
-      increment = VertexCoordinate{0, 0};
-      neighbourCoordinate = VertexCoordinate{0, 0};
-      neighbourIncrement = VertexCoordinate{0, 0};
-
-      freeAxis = VertexCoordinate::Axis::X;
-      end = 0;
+      end += increment[freeAxis];
     }
   }
 
@@ -221,7 +208,23 @@ namespace BspParser::Internal {
     return coordinate[freeAxis] < end;
   }
 
+  const VertexCoordinate& SubEdgeIterator::getVertexCoordinate() const {
+    return coordinate;
+  }
+
+  int32_t SubEdgeIterator::getVertexIndex() const {
+    return coordinate.y * displacement->numVerticesPerAxis + coordinate.x;
+  }
+
+  int32_t SubEdgeIterator::getNeighbourVertexIndex() const {
+    return neighbourCoordinate.y * neighbour->numVerticesPerAxis + neighbourCoordinate.x;
+  }
+
   bool SubEdgeIterator::isLastVertex() const {
     return coordinate[freeAxis] + increment[freeAxis] >= end;
+  }
+
+  VertexCoordinate::Axis SubEdgeIterator::getFreeAxis() const {
+    return freeAxis;
   }
 }

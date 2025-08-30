@@ -80,4 +80,12 @@ namespace BspParser {
   inline Structs::Vector normalise(const Structs::Vector& v) {
     return div(v, length(v));
   }
+
+  inline Structs::Vector lerp(const Structs::Vector& a, const Structs::Vector& b, const float t) {
+    return Structs::Vector{
+      .x = a.x + (b.x - a.x) * t,
+      .y = a.y + (b.y - a.y) * t,
+      .z = a.z + (b.z - a.z) * t,
+    };
+  }
 }

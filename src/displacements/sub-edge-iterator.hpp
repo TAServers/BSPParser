@@ -22,26 +22,24 @@ namespace BspParser::Internal {
 
   class SubEdgeIterator {
   public:
-    void start(
-      std::span<const TriangulatedDisplacement> displacements,
+    SubEdgeIterator(
       const TriangulatedDisplacement& displacement,
+      const Structs::DispSubNeighbour& subNeighbour,
+      const TriangulatedDisplacement& neighbour,
       int32_t edgeIndex,
       int32_t subNeighbourIndex,
       bool shouldTouchCorners = false
     );
+
     bool next();
 
-    const VertexCoordinate& getVertexCoordinate() const {
-      return coordinate;
-    }
-    int32_t getVertexIndex() const {
-      return coordinate.y * displacement->numVerticesPerAxis + coordinate.x;
-    }
-    int32_t getNeighbourVertexIndex() const {
-      return neighbourCoordinate.y * neighbour->numVerticesPerAxis + neighbourCoordinate.x;
-    }
+    [[nodiscard]] const VertexCoordinate& getVertexCoordinate() const;
+    [[nodiscard]] int32_t getVertexIndex() const;
+    [[nodiscard]] int32_t getNeighbourVertexIndex() const;
 
-    bool isLastVertex() const;
+    [[nodiscard]] bool isLastVertex() const;
+
+    [[nodiscard]] VertexCoordinate::Axis getFreeAxis() const;
 
   private:
     const TriangulatedDisplacement* displacement = nullptr;
@@ -59,6 +57,8 @@ namespace BspParser::Internal {
     VertexCoordinate::Axis freeAxis = VertexCoordinate::Axis::X;
 
     void setupEdgeIncrements(int32_t edgeIndex, int32_t subNeighbourIndex);
-    VertexCoordinate transformIntoSubNeighbour(int32_t edgeIndex, const VertexCoordinate& toTransform) const;
+    [[nodiscard]] VertexCoordinate transformIntoSubNeighbour(
+      int32_t edgeIndex, const VertexCoordinate& toTransform
+    ) const;
   };
 }
