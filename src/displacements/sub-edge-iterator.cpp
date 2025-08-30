@@ -24,22 +24,6 @@ namespace BspParser::Internal {
   constexpr auto EDGE_SIDE_LENGTH_MULTIPLIERS = std::array{0, 1, 1, 0};
 
   namespace {
-    const DispSubNeighbour& getSubNeighbour(
-      const TriangulatedDisplacement& displacement, int32_t edgeIndex, int32_t subNeighbourIndex
-    ) {
-      const auto& subNeighbour = displacement.edgeNeighbours[edgeIndex].subNeighbors[subNeighbourIndex];
-
-      if (!subNeighbour.isValid()) {
-        throw std::invalid_argument(
-          std::format(
-            "Invalid sub-neighbour at edge index '{}' and sub-neighbour index '{}'", edgeIndex, subNeighbourIndex
-          )
-        );
-      }
-
-      return subNeighbour;
-    }
-
     VertexCoordinate rotateVertexIncrement(const uint8_t orientation, const VertexCoordinate& toRotate) {
       switch (orientation) {
         case ORIENTATION_CCW_0:
@@ -57,6 +41,8 @@ namespace BspParser::Internal {
       const int32_t sideLengthM1 = numVerticesPerAxis - 1;
 
       switch (corner) {
+        case TriangulatedDisplacement::CORNER_LOWER_LEFT:
+          return VertexCoordinate{0, 0};
         case TriangulatedDisplacement::CORNER_UPPER_LEFT:
           return VertexCoordinate{0, sideLengthM1};
         case TriangulatedDisplacement::CORNER_UPPER_RIGHT:
@@ -102,12 +88,13 @@ namespace BspParser::Internal {
     // Not exactly sure what this represents. Extracted into a constant so at least the magic is obvious...
     constexpr auto magic2To16th = 1u << 16u;
 
-    const auto [srcStart, srcEnd] = setupSpan(displacement->numVerticesPerAxis, edgeIndex, neighbourSpan);
+    const auto [srcStart, srcEnd] = setupSpan(displacement->numVerticesPerAxis, edgeIndex, span);
 
-    const auto neighbourEdgeIndex = (edgeIndex + 2 + neighbourOrientation) & 3u;
+    const auto neighbourEdgeIndex = (edgeIndex + 2 + neighbourOrientation) & 3;
     const auto [destEnd, destStart] = setupSpan(neighbour->numVerticesPerAxis, neighbourEdgeIndex, neighbourSpan);
 
-    const auto freeDimension = EDGE_AXES[edgeIndex];
+    const auto freeDimension =
+      EDGE_AXES[edgeIndex] == VertexCoordinate::Axis::X ? VertexCoordinate::Axis::Y : VertexCoordinate::Axis::X;
     const auto fixedPercent = (toTransform[freeDimension] - srcStart[freeDimension]) * magic2To16th /
       (srcEnd[freeDimension] - srcStart[freeDimension]);
     if (fixedPercent < 0 || fixedPercent > magic2To16th) {
@@ -168,7 +155,7 @@ namespace BspParser::Internal {
 
     neighbourIncrement = rotateVertexIncrement(neighbourOrientation, tempInc);
 
-    if (neighbourSpan == CORNER_TO_MIDPOINT) {
+    if (span == CORNER_TO_MIDPOINT) {
       end = sideLength >> 1u;
     } else {
       end = sideLength - 1u;
@@ -186,7 +173,8 @@ namespace BspParser::Internal {
     displacement(&displacement), //
     neighbour(&neighbour), //
     neighbourOrientation(subNeighbour.orientation), //
-    neighbourSpan(subNeighbour.span) {
+    span(subNeighbour.span), //
+    neighbourSpan(subNeighbour.neighbourSpan) {
     setupEdgeIncrements(edgeIndex, subNeighbourIndex);
 
     if (shouldTouchCorners) {

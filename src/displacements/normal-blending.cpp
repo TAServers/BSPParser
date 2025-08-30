@@ -41,7 +41,7 @@ namespace BspParser::Internal {
         while (iterator.next()) {
           if (!iterator.isLastVertex()) {
             auto& vertex = displacement.vertices[iterator.getVertexIndex()];
-            auto& neighbourVertex = neighbourDisplacement.vertices[iterator.getVertexIndex()];
+            auto& neighbourVertex = neighbourDisplacement.vertices[iterator.getNeighbourVertexIndex()];
 
             // TODO #174: Do we need to handle different handedness?
             const auto averageT = div(add(xyz(vertex.tangent), xyz(neighbourVertex.tangent)), 2);

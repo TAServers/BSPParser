@@ -6,7 +6,7 @@
 
 namespace BspParser::Internal {
   struct VertexCoordinate {
-    enum class Axis { X, Y };
+    enum class Axis : uint8_t { X, Y };
 
     int32_t x = 0;
     int32_t y = 0;
@@ -44,7 +44,10 @@ namespace BspParser::Internal {
   private:
     const TriangulatedDisplacement* displacement = nullptr;
     const TriangulatedDisplacement* neighbour = nullptr;
+
     uint8_t neighbourOrientation = 0;
+
+    uint8_t span = 0;
     uint8_t neighbourSpan = 0;
 
     VertexCoordinate coordinate{};
