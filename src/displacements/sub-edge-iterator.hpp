@@ -58,10 +58,9 @@ namespace BspParser::Internal {
 
     int32_t end = 0;
     VertexCoordinate::Axis freeAxis = VertexCoordinate::Axis::X;
+    VertexCoordinate::Axis neighbourFreeAxis = VertexCoordinate::Axis::X;
 
     void setupEdgeIncrements(int32_t edgeIndex, int32_t subNeighbourIndex);
-    [[nodiscard]] VertexCoordinate transformIntoSubNeighbour(
-      int32_t edgeIndex, const VertexCoordinate& toTransform
-    ) const;
+    [[nodiscard]] VertexCoordinate transformIntoSubNeighbour(int32_t edgeIndex, const VertexCoordinate& toTransform);
   };
 }
