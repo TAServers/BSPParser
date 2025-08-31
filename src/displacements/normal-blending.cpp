@@ -12,7 +12,139 @@ namespace BspParser::Internal {
       return C + (D - C) * (val - A) / (B - A);
     }
 
-    void blendCorners() {}
+    std::vector<size_t> getAllNeighbourIndices(const TriangulatedDisplacement& displacement) {
+      std::vector<size_t> neighbourIndices;
+
+      for (const auto& corner : displacement.cornerNeighbours) {
+        neighbourIndices.insert(neighbourIndices.end(), corner.begin(), corner.end());
+      }
+
+      for (const auto& edge : displacement.edgeNeighbours) {
+        for (const auto& subNeighbour : edge.subNeighbors) {
+          if (subNeighbour.isValid()) {
+            neighbourIndices.push_back(subNeighbour.index);
+          }
+        }
+      }
+
+      return std::move(neighbourIndices);
+    }
+
+    size_t cornerToVertIdx(const TriangulatedDisplacement& displacement, const int32_t corner) {
+      size_t x = 0;
+      size_t y = 0;
+
+      if (corner == TriangulatedDisplacement::CORNER_UPPER_LEFT ||
+          corner == TriangulatedDisplacement::CORNER_UPPER_RIGHT) {
+        y = displacement.numVerticesPerAxis - 1;
+      }
+
+      if (corner == TriangulatedDisplacement::CORNER_UPPER_RIGHT ||
+          corner == TriangulatedDisplacement::CORNER_LOWER_RIGHT) {
+        x = displacement.numVerticesPerAxis - 1;
+      }
+
+      return y * displacement.numVerticesPerAxis + x;
+    }
+
+    size_t getEdgeMidPoint(const TriangulatedDisplacement& displacement, const int32_t edge) {
+      const auto end = displacement.numVerticesPerAxis - 1;
+      const auto mid = displacement.numVerticesPerAxis / 2;
+
+      size_t x = 0;
+      size_t y = 0;
+
+      switch (edge) {
+        case TriangulatedDisplacement::EDGE_LEFT:
+          y = mid;
+          break;
+        case TriangulatedDisplacement::EDGE_TOP:
+          x = mid;
+          y = end;
+          break;
+        case TriangulatedDisplacement::EDGE_RIGHT:
+          x = end;
+          y = mid;
+          break;
+        case TriangulatedDisplacement::EDGE_BOTTOM:
+          x = mid;
+          break;
+        default:
+          break;
+      }
+
+      return y * displacement.numVerticesPerAxis + x;
+    }
+
+    int32_t findNeighbourCorner(const TriangulatedDisplacement& displacement, const Structs::Vector& test) {
+      int32_t closestCorner = 0;
+      auto closestDistance = 1e24f;
+
+      for (int32_t corner = 0; corner < 4; corner++) {
+        const auto cornerVertexIndex = cornerToVertIdx(displacement, corner);
+
+        const auto& cornerVertex = displacement.vertices[cornerVertexIndex];
+
+        const auto delta = sub(cornerVertex.position, test);
+        const auto distance = length(delta);
+
+        if (distance < closestDistance) {
+          closestCorner = corner;
+          closestDistance = distance;
+        }
+      }
+
+      return closestDistance <= 0.1f ? closestCorner : -1;
+    }
+
+    void blendCorners(const std::span<TriangulatedDisplacement> displacements, TriangulatedDisplacement& displacement) {
+      const auto neighbourIndices = getAllNeighbourIndices(displacement);
+      std::vector neighbourCornerVertexIndices(neighbourIndices.size(), -1);
+
+      for (int32_t corner = 0; corner < 4; corner++) {
+        const auto cornerVertexIndex = cornerToVertIdx(displacement, corner);
+        auto& cornerVertex = displacement.vertices[cornerVertexIndex];
+
+        auto divisor = 1.f;
+        auto averageT = xyz(cornerVertex.tangent);
+        auto averageN = cornerVertex.normal;
+
+        for (size_t neighbourIndex = 0; neighbourIndex < neighbourIndices.size(); neighbourIndex++) {
+          const auto& neighbour = displacements[neighbourIndices[neighbourIndex]];
+          const auto neighbourCorner = findNeighbourCorner(neighbour, cornerVertex.position);
+
+          if (neighbourCorner < 0) {
+            neighbourCornerVertexIndices[neighbourIndex] = -1;
+            continue;
+          }
+
+          const auto neighbourCornerVertexIndex = cornerToVertIdx(neighbour, neighbourCorner);
+          const auto& neighbourVertex = neighbour.vertices[neighbourCornerVertexIndex];
+          neighbourCornerVertexIndices[neighbourIndex] = neighbourCornerVertexIndex;
+
+          averageT = add(averageT, xyz(neighbourVertex.tangent));
+          averageN = add(averageN, neighbourVertex.normal);
+          divisor++;
+        }
+
+        averageT = div(averageT, divisor);
+        averageN = div(averageN, divisor);
+
+        cornerVertex.tangent = Structs::Vector4{averageT.x, averageT.y, averageT.z, cornerVertex.tangent.w};
+        cornerVertex.normal = averageN;
+
+        for (size_t neighbourIndex = 0; neighbourIndex < neighbourIndices.size(); neighbourIndex++) {
+          const auto vertexIndex = neighbourCornerVertexIndices[neighbourIndex];
+          if (vertexIndex < 0) {
+            continue;
+          }
+
+          auto& vertex = displacements[neighbourIndices[neighbourIndex]].vertices[vertexIndex];
+          vertex.tangent = Structs::Vector4{averageT.x, averageT.y, averageT.z, cornerVertex.tangent.w};
+          vertex.normal = averageN;
+        }
+      }
+    }
 
     void blendTJunctions() {}
 
@@ -88,7 +220,7 @@ namespace BspParser::Internal {
 
   void blendNeighbouringDisplacementNormals(const std::span<TriangulatedDisplacement> displacements) {
     for (auto& displacement : displacements) {
-      blendCorners();
+      blendCorners(displacements, displacement);
 
       for (int edgeIndex = 0; edgeIndex < 4; edgeIndex++) {
         const auto& edgeNeighbour = displacement.edgeNeighbours.at(edgeIndex);
