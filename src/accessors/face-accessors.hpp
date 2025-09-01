@@ -6,6 +6,9 @@
 #include "../vertex.hpp"
 #include <functional>
 
+/**
+ * A collection of helper functions to ease traversing the MDL, VTX and VVD structures together.
+ */
 namespace BspParser::Accessors {
   /**
    * Calls the provided function for each model in the BSP, passing a reference to the Structs::Model and its corresponding physics models.
