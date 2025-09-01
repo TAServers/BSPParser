@@ -52,4 +52,5 @@ add_library(BSPParser
         src/displacements/sub-edge-iterator.cpp
         src/displacements/normal-blending.cpp
         src/displacements/normal-blending.hpp
+        src/phys-model.hpp
 )

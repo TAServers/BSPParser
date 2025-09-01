@@ -127,7 +127,7 @@ namespace BspParser {
     );
   }
 
-  std::vector<Bsp::PhysModel> Bsp::parsePhysCollideLump() const {
+  std::vector<PhysModel> Bsp::parsePhysCollideLump() const {
     const auto& lumpHeader = header->lumps.at(static_cast<size_t>(Enums::Lump::PhysCollide));
     assertLumpHeaderValid(Enums::Lump::PhysCollide, lumpHeader);
 

@@ -15,9 +15,9 @@ namespace BspParser::Accessors {
 
   void iterateModels(
     const Bsp& bsp,
-    const std::function<void(const Structs::Model& model, const std::vector<Bsp::PhysModel>& physicsModels)>& iteratee
+    const std::function<void(const Structs::Model& model, const std::vector<PhysModel>& physicsModels)>& iteratee
   ) {
-    std::vector<Bsp::PhysModel> physicsModels;
+    std::vector<PhysModel> physicsModels;
 
     for (int32_t modelIndex = 0; modelIndex < bsp.models.size(); modelIndex++) {
       physicsModels.clear();

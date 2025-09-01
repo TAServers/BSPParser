@@ -1,6 +1,7 @@
 #pragma once
 
 #include "errors.hpp"
+#include "phys-model.hpp"
 #include "displacements/triangulated-displacement.hpp"
 #include "enums/lump.hpp"
 #include "helpers/offset-data-view.hpp"
@@ -26,31 +27,6 @@ namespace BspParser {
    * @note Does not take ownership of the passed data. It is your responsibility to ensure the lifetime of the BSP does not exceed that of the underlying data.
    */
   struct Bsp {
-    /**
-     * Raw physmesh solid and text data for a given model.
-     */
-    struct PhysModel {
-      /**
-       * Index into the model lump this physics model is for
-       */
-      int32_t modelIndex;
-
-      /**
-       * Total number of solids in the collision surface sections
-       */
-      int32_t solidCount;
-
-      /**
-       * Raw .PHY solid data. Use `PhyParser::parseSurfaces` from the accompanying PHYParser library to parse this.
-       */
-      std::span<const std::byte> collisionData;
-
-      /**
-       * Raw .PHY text section data. Use `PhyParser::parseTextSection` from the accompanying PHYParser library to parse this.
-       */
-      std::span<const std::byte> textSectionData;
-    };
-
     explicit Bsp(std::span<const std::byte> data);
 
     std::span<const std::byte> data;
