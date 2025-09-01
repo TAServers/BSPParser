@@ -146,7 +146,39 @@ namespace BspParser::Internal {
       }
     }
 
-    void blendTJunctions() {}
+    void blendTJunctions(
+      const std::span<TriangulatedDisplacement> displacements,
+      TriangulatedDisplacement& displacement,
+      const Structs::DispNeighbour& neighbour,
+      const int32_t edgeIndex
+    ) {
+      if (!neighbour.subNeighbors[0].isValid() || !neighbour.subNeighbors[1].isValid()) {
+        return;
+      }
+
+      const auto midPointVertexIndex = getEdgeMidPoint(displacement, edgeIndex);
+      auto& midPoint = displacement.vertices[midPointVertexIndex];
+
+      auto& neighbourA = displacements[neighbour.subNeighbors[0].index];
+      auto& neighbourB = displacements[neighbour.subNeighbors[1].index];
+
+      const auto cornerA = findNeighbourCorner(neighbourA, midPoint.position);
+      const auto cornerB = findNeighbourCorner(neighbourB, midPoint.position);
+
+      if (cornerA < 0 || cornerB < 0) {
+        return;
+      }
+
+      auto& cornerAVertex = neighbourA.vertices[cornerToVertIdx(neighbourA, cornerA)];
+      auto& cornerBVertex = neighbourB.vertices[cornerToVertIdx(neighbourB, cornerB)];
+
+      const auto averageT = div(add(xyz(midPoint.tangent), xyz(cornerAVertex.tangent), xyz(cornerBVertex.tangent)), 3);
+      const auto averageN = div(add(midPoint.normal, cornerAVertex.normal, cornerBVertex.normal), 3);
+
+      midPoint.tangent = cornerAVertex.tangent = cornerBVertex.tangent =
+        Structs::Vector4{averageT.x, averageT.y, averageT.z, midPoint.tangent.w};
+      midPoint.normal = cornerAVertex.normal = cornerBVertex.normal = averageN;
+    }
 
     void blendEdges(
       const std::span<TriangulatedDisplacement> displacements,
@@ -225,7 +257,7 @@ namespace BspParser::Internal {
       for (int edgeIndex = 0; edgeIndex < 4; edgeIndex++) {
         const auto& edgeNeighbour = displacement.edgeNeighbours.at(edgeIndex);
 
-        blendTJunctions();
+        blendTJunctions(displacements, displacement, edgeNeighbour, edgeIndex);
         blendEdges(displacements, displacement, edgeNeighbour, edgeIndex);
       }
     }

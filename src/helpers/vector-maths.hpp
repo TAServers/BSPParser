@@ -15,11 +15,14 @@ namespace BspParser {
     };
   }
 
-  inline Structs::Vector add(const Structs::Vector& a, const Structs::Vector& b) {
+  template <typename... T>
+  Structs::Vector add(const T&... args)
+    requires(... && std::same_as<Structs::Vector, T>)
+  {
     return Structs::Vector{
-      .x = a.x + b.x,
-      .y = a.y + b.y,
-      .z = a.z + b.z,
+      .x = (args.x + ...),
+      .y = (args.y + ...),
+      .z = (args.z + ...),
     };
   }
 
