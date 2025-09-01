@@ -23,6 +23,30 @@ namespace BspParser::Internal {
 
   constexpr auto EDGE_SIDE_LENGTH_MULTIPLIERS = std::array{0, 1, 1, 0};
 
+  struct ShiftInfo {
+    int32_t midPointScale;
+    int32_t powerShiftAdd;
+    bool valid;
+  };
+
+  constexpr std::array SHIFT_INFOS = {
+    std::array{
+      ShiftInfo{0, 0, true}, // CORNER_TO_CORNER -> CORNER_TO_CORNER
+      ShiftInfo{0, -1, true}, // CORNER_TO_CORNER -> CORNER_TO_MIDPOINT
+      ShiftInfo{2, -1, true} // CORNER_TO_CORNER -> MIDPOINT_TO_CORNER
+    },
+    std::array{
+      ShiftInfo{0, 1, true}, // CORNER_TO_MIDPOINT -> CORNER_TO_CORNER
+      ShiftInfo{0, 0, false}, // CORNER_TO_MIDPOINT -> CORNER_TO_MIDPOINT (invalid)
+      ShiftInfo{0, 0, false} // CORNER_TO_MIDPOINT -> MIDPOINT_TO_CORNER (invalid)
+    },
+    std::array{
+      ShiftInfo{-1, 1, true}, // MIDPOINT_TO_CORNER -> CORNER_TO_CORNER
+      ShiftInfo{0, 0, false}, // MIDPOINT_TO_CORNER -> CORNER_TO_MIDPOINT (invalid)
+      ShiftInfo{0, 0, false} // MIDPOINT_TO_CORNER -> MIDPOINT_TO_CORNER (invalid)
+    }
+  };
+
   namespace {
     VertexCoordinate rotateVertexIncrement(const uint8_t orientation, const VertexCoordinate& toRotate) {
       switch (orientation) {
@@ -111,16 +135,11 @@ namespace BspParser::Internal {
     const auto edgeAxis = EDGE_AXES[edgeIndex];
     freeAxis = edgeAxis == VertexCoordinate::Axis::X ? VertexCoordinate::Axis::Y : VertexCoordinate::Axis::X;
 
-    // Using the shift info actually causes indexing out of range into the neighbour's verts
-    // I have tried figuring out how Source doesn't encounter this issue to no avail
-    // Removing the shift add below seems to have no effect on the final normals however (in fact they appear smoother)
-    // So my only conclusion is that Source literally causes heap corruption in the displacement deserialization inside VRAD
-    // If anyone has a better explanation please raise an issue on GitHub
-    //const ShiftInfo& shiftInfo = g_ShiftInfos[sub.span][sub.neighbourSpan];
-    //if (!shiftInfo.valid) throw std::runtime_error("Shift info invalid");
+    const ShiftInfo& shiftInfo = SHIFT_INFOS[span][neighbourSpan];
+    const auto powerShiftAdd = shiftInfo.valid ? shiftInfo.powerShiftAdd : 0;
 
     const auto power = displacement->dispInfo.power;
-    const auto neighbourPower = neighbour->dispInfo.power; // + shiftInfo.powerShiftAdd;
+    const auto neighbourPower = neighbour->dispInfo.power + powerShiftAdd;
 
     VertexCoordinate tempInc;
     increment[edgeAxis] = 0;
@@ -176,15 +195,18 @@ namespace BspParser::Internal {
   bool SubEdgeIterator::next() {
     coordinate.x += increment.x;
     coordinate.y += increment.y;
-    neighbourCoordinate.x += neighbourIncrement.x;
-    neighbourCoordinate.y += neighbourIncrement.y;
+
+    neighbourCoordinate.x =
+      std::min(neighbourCoordinate.x + neighbourIncrement.x, static_cast<int32_t>(neighbour->numVerticesPerAxis) - 1);
+    neighbourCoordinate.y =
+      std::min(neighbourCoordinate.y + neighbourIncrement.y, static_cast<int32_t>(neighbour->numVerticesPerAxis) - 1);
 
     // The source sdk (and original BSPParser) don't check the bounds of the neighbour axis here
     // After the rewrite I was getting out of range index errors from the neighbour coord though,
     // so either something is subtly wrong with the reimplementation, or it always used to index out of range silently
     return coordinate[freeAxis] < end //
       && coordinate[freeAxis] < displacement->numVerticesPerAxis //
-      && neighbourCoordinate[freeAxis] < neighbour->numVerticesPerAxis;
+      && neighbourCoordinate[neighbourFreeAxis] < neighbour->numVerticesPerAxis;
   }
 
   const VertexCoordinate& SubEdgeIterator::getVertexCoordinate() const {

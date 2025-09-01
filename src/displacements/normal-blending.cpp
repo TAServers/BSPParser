@@ -78,7 +78,7 @@ namespace BspParser::Internal {
 
     int32_t findNeighbourCorner(const TriangulatedDisplacement& displacement, const Structs::Vector& test) {
       int32_t closestCorner = 0;
-      auto closestDistance = 1e24f;
+      auto closestDistance = std::numeric_limits<float>::max();
 
       for (int32_t corner = 0; corner < 4; corner++) {
         const auto cornerVertexIndex = cornerToVertIdx(displacement, corner);
