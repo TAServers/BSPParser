@@ -1,0 +1,94 @@
+#pragma once
+
+#include "../structs/common.hpp"
+#include <cmath>
+
+namespace BspParser::Internal {
+  inline Structs::Vector xyz(const Structs::Vector4& v) {
+    return {.x = v.x, .y = v.y, .z = v.z};
+  }
+
+  inline Structs::Vector2 add(const Structs::Vector2& a, const Structs::Vector2& b) {
+    return Structs::Vector2{
+      .x = a.x + b.x,
+      .y = a.y + b.y,
+    };
+  }
+
+  template <typename... T>
+  Structs::Vector add(const T&... args)
+    requires(... && std::same_as<Structs::Vector, T>)
+  {
+    return Structs::Vector{
+      .x = (args.x + ...),
+      .y = (args.y + ...),
+      .z = (args.z + ...),
+    };
+  }
+
+  inline Structs::Vector2 sub(const Structs::Vector2& a, const Structs::Vector2& b) {
+    return Structs::Vector2{
+      .x = a.x - b.x,
+      .y = a.y - b.y,
+    };
+  }
+
+  inline Structs::Vector sub(const Structs::Vector& a, const Structs::Vector& b) {
+    return Structs::Vector{
+      .x = a.x - b.x,
+      .y = a.y - b.y,
+      .z = a.z - b.z,
+    };
+  }
+
+  inline Structs::Vector2 mul(const Structs::Vector2& a, const float b) {
+    return Structs::Vector2{
+      .x = a.x * b,
+      .y = a.y * b,
+    };
+  }
+
+  inline Structs::Vector mul(const Structs::Vector& a, const float b) {
+    return Structs::Vector{
+      .x = a.x * b,
+      .y = a.y * b,
+      .z = a.z * b,
+    };
+  }
+
+  inline Structs::Vector div(const Structs::Vector& a, const float b) {
+    return Structs::Vector{
+      .x = a.x / b,
+      .y = a.y / b,
+      .z = a.z / b,
+    };
+  }
+
+  inline float dot(const Structs::Vector& a, const Structs::Vector& b) {
+    return a.x * b.x + a.y * b.y + a.z * b.z;
+  }
+
+  inline Structs::Vector cross(const Structs::Vector& a, const Structs::Vector& b) {
+    return Structs::Vector{
+      .x = a.y * b.z - a.z * b.y,
+      .y = a.z * b.x - a.x * b.z,
+      .z = a.x * b.y - a.y * b.x,
+    };
+  }
+
+  inline float length(const Structs::Vector& v) {
+    return std::sqrt(dot(v, v));
+  }
+
+  inline Structs::Vector normalise(const Structs::Vector& v) {
+    return div(v, length(v));
+  }
+
+  inline Structs::Vector lerp(const Structs::Vector& a, const Structs::Vector& b, const float t) {
+    return Structs::Vector{
+      .x = a.x + (b.x - a.x) * t,
+      .y = a.y + (b.y - a.y) * t,
+      .z = a.z + (b.z - a.z) * t,
+    };
+  }
+}
