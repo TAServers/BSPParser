@@ -48,6 +48,10 @@ namespace BspParser::Internal {
   };
 
   namespace {
+    VertexCoordinate::Axis invert(const VertexCoordinate::Axis axis) {
+      return axis == VertexCoordinate::Axis::X ? VertexCoordinate::Axis::Y : VertexCoordinate::Axis::X;
+    }
+
     VertexCoordinate rotateVertexIncrement(const uint8_t orientation, const VertexCoordinate& toRotate) {
       switch (orientation) {
         case ORIENTATION_CCW_0:
@@ -61,26 +65,43 @@ namespace BspParser::Internal {
       }
     }
 
+    VertexCoordinate getCornerPointIndex(const int32_t numVerticesPerAxis, const int32_t corner) {
+      switch (corner) {
+        case TriangulatedDisplacement::CORNER_LOWER_LEFT:
+          return {0, 0};
+        case TriangulatedDisplacement::CORNER_UPPER_LEFT:
+          return {0, numVerticesPerAxis - 1};
+        case TriangulatedDisplacement::CORNER_UPPER_RIGHT:
+          return {numVerticesPerAxis - 1, numVerticesPerAxis - 1};
+        case TriangulatedDisplacement::CORNER_LOWER_RIGHT:
+          return {numVerticesPerAxis - 1, 0};
+        default:
+          throw std::out_of_range("Corner index out of range");
+      }
+    }
+
     std::pair<VertexCoordinate, VertexCoordinate> setupSpan(
       const int32_t numVerticesPerAxis, const int32_t edgeIndex, const uint8_t span
     ) {
       const auto edgeAxis = EDGE_AXES[edgeIndex];
-      const auto freeAxis =
-        edgeAxis == VertexCoordinate::Axis::X ? VertexCoordinate::Axis::Y : VertexCoordinate::Axis::X;
+      const auto freeAxis = invert(edgeAxis);
       const auto midPoint = numVerticesPerAxis / 2;
 
-      VertexCoordinate start{};
-      start[edgeAxis] = EDGE_SIDE_LENGTH_MULTIPLIERS[edgeIndex] * (numVerticesPerAxis - 1);
-      start[freeAxis] = 0;
+      auto start = getCornerPointIndex(numVerticesPerAxis, edgeIndex);
+      auto end = getCornerPointIndex(numVerticesPerAxis, (edgeIndex + 1) & 3);
 
-      VertexCoordinate end{};
-      end[edgeAxis] = EDGE_SIDE_LENGTH_MULTIPLIERS[edgeIndex] * (numVerticesPerAxis - 1);
-      end[freeAxis] = numVerticesPerAxis - 1;
-
-      if (span == CORNER_TO_MIDPOINT) {
-        end[freeAxis] = midPoint;
-      } else if (span == MIDPOINT_TO_CORNER) {
-        start[freeAxis] = midPoint;
+      if (edgeIndex == TriangulatedDisplacement::EDGE_RIGHT || edgeIndex == TriangulatedDisplacement::EDGE_BOTTOM) {
+        if (span == CORNER_TO_MIDPOINT) {
+          start[freeAxis] = midPoint;
+        } else if (span == MIDPOINT_TO_CORNER) {
+          end[freeAxis] = midPoint;
+        }
+      } else {
+        if (span == CORNER_TO_MIDPOINT) {
+          end[freeAxis] = midPoint;
+        } else if (span == MIDPOINT_TO_CORNER) {
+          start[freeAxis] = midPoint;
+        }
       }
 
       return std::make_pair(start, end);
@@ -91,27 +112,18 @@ namespace BspParser::Internal {
     const int32_t edgeIndex, const VertexCoordinate& toTransform
   ) {
     // Not exactly sure what this represents. Extracted into a constant so at least the magic is obvious...
-    constexpr auto magic2To16th = 1u << 16u;
+    constexpr int32_t magic2To16th = 1u << 16u;
 
     const auto [srcStart, srcEnd] = setupSpan(displacement->numVerticesPerAxis, edgeIndex, span);
 
-    const auto neighbourEdgeIndex = (edgeIndex + 2 + neighbourOrientation) % 4;
+    const auto neighbourEdgeIndex = (edgeIndex + 2 + neighbourOrientation) & 3;
     const auto neighbourEdgeAxis = EDGE_AXES[neighbourEdgeIndex];
-    neighbourFreeAxis =
-      neighbourEdgeAxis == VertexCoordinate::Axis::X ? VertexCoordinate::Axis::Y : VertexCoordinate::Axis::X;
+    neighbourFreeAxis = invert(neighbourEdgeAxis);
 
-    auto [destStart, destEnd] = setupSpan(neighbour->numVerticesPerAxis, neighbourEdgeIndex, neighbourSpan);
+    auto [destEnd, destStart] = setupSpan(neighbour->numVerticesPerAxis, neighbourEdgeIndex, neighbourSpan);
 
-    if (neighbourIncrement[neighbourFreeAxis] < 0 && destStart[neighbourFreeAxis] < destEnd[neighbourFreeAxis]) {
-      std::swap(destStart, destEnd);
-    } else if (destStart[neighbourFreeAxis] > destEnd[neighbourFreeAxis]) {
-      std::swap(destStart, destEnd);
-    }
-
-    const auto freeDimension =
-      EDGE_AXES[edgeIndex] == VertexCoordinate::Axis::X ? VertexCoordinate::Axis::Y : VertexCoordinate::Axis::X;
-    const auto fixedPercent = (toTransform[freeDimension] - srcStart[freeDimension]) * magic2To16th /
-      (srcEnd[freeDimension] - srcStart[freeDimension]);
+    const auto fixedPercent =
+      (toTransform[freeAxis] - srcStart[freeAxis]) * magic2To16th / (srcEnd[freeAxis] - srcStart[freeAxis]);
     if (fixedPercent < 0 || fixedPercent > magic2To16th) {
       throw std::out_of_range("fixedPercent out of range");
     }
@@ -133,37 +145,37 @@ namespace BspParser::Internal {
 
   void SubEdgeIterator::setupEdgeIncrements(const int32_t edgeIndex, const int32_t subNeighbourIndex) {
     const auto edgeAxis = EDGE_AXES[edgeIndex];
-    freeAxis = edgeAxis == VertexCoordinate::Axis::X ? VertexCoordinate::Axis::Y : VertexCoordinate::Axis::X;
+    freeAxis = invert(edgeAxis);
 
     const ShiftInfo& shiftInfo = SHIFT_INFOS[span][neighbourSpan];
     const auto powerShiftAdd = shiftInfo.valid ? shiftInfo.powerShiftAdd : 0;
 
-    const auto power = displacement->dispInfo.power;
-    const auto neighbourPower = neighbour->dispInfo.power + powerShiftAdd;
-
     VertexCoordinate tempInc;
-    increment[edgeAxis] = 0;
-    tempInc[edgeAxis] = 0;
-    if (neighbourPower > power) {
-      increment[freeAxis] = 1;
-      tempInc[freeAxis] = 1u << (neighbourPower - power);
-    } else {
-      increment[freeAxis] = 1u << (power - neighbourPower);
-      tempInc[freeAxis] = 1;
-    }
 
-    neighbourIncrement = rotateVertexIncrement(neighbourOrientation, tempInc);
-
-    const auto sideLength = displacement->numVerticesPerAxis;
+    const int32_t sideLength = displacement->numVerticesPerAxis;
 
     coordinate[edgeAxis] = EDGE_SIDE_LENGTH_MULTIPLIERS[edgeIndex] * (sideLength - 1);
     coordinate[freeAxis] = sideLength / 2 * subNeighbourIndex;
     neighbourCoordinate = transformIntoSubNeighbour(edgeIndex, coordinate);
 
-    if (span == CORNER_TO_MIDPOINT) {
-      end = sideLength >> 1u;
+    const auto power = displacement->dispInfo.power;
+    const auto neighbourPower = neighbour->dispInfo.power + powerShiftAdd;
+
+    increment[edgeAxis] = tempInc[edgeAxis] = 0;
+    if (neighbourPower > power) {
+      increment[freeAxis] = 1;
+      tempInc[freeAxis] = 1 << (neighbourPower - power);
     } else {
-      end = sideLength - 1u;
+      increment[freeAxis] = 1 << (power - neighbourPower);
+      tempInc[freeAxis] = 1;
+    }
+
+    neighbourIncrement = rotateVertexIncrement(neighbourOrientation, tempInc);
+
+    if (span == CORNER_TO_MIDPOINT) {
+      end = sideLength >> 1;
+    } else {
+      end = sideLength - 1;
     }
   }
 
@@ -195,18 +207,13 @@ namespace BspParser::Internal {
   bool SubEdgeIterator::next() {
     coordinate.x += increment.x;
     coordinate.y += increment.y;
-
-    neighbourCoordinate.x =
-      std::min(neighbourCoordinate.x + neighbourIncrement.x, static_cast<int32_t>(neighbour->numVerticesPerAxis) - 1);
-    neighbourCoordinate.y =
-      std::min(neighbourCoordinate.y + neighbourIncrement.y, static_cast<int32_t>(neighbour->numVerticesPerAxis) - 1);
+    neighbourCoordinate.x += neighbourIncrement.x;
+    neighbourCoordinate.y += neighbourIncrement.y;
 
     // The source sdk (and original BSPParser) don't check the bounds of the neighbour axis here
     // After the rewrite I was getting out of range index errors from the neighbour coord though,
     // so either something is subtly wrong with the reimplementation, or it always used to index out of range silently
-    return coordinate[freeAxis] < end //
-      && coordinate[freeAxis] < displacement->numVerticesPerAxis //
-      && neighbourCoordinate[neighbourFreeAxis] < neighbour->numVerticesPerAxis;
+    return coordinate[freeAxis] < end;
   }
 
   const VertexCoordinate& SubEdgeIterator::getVertexCoordinate() const {
