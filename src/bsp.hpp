@@ -79,6 +79,12 @@ namespace BspParser {
       std::span<const Structs::StaticPropV7Multiplayer2013>>>
       staticProps = std::nullopt;
 
+    /**
+     * Smooths normals and tangents between neighbouring displacements for rendering.
+     * @warning This must only be called once.
+     */
+    void smoothNeighbouringDisplacements();
+
   private:
     template <typename LumpType>
     std::span<const LumpType> parseLump(Enums::Lump lump, size_t maxItems = std::numeric_limits<size_t>::max()) {
