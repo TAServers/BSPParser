@@ -20,7 +20,15 @@
 #include <vector>
 
 namespace BspParser {
+  /**
+   * Lightweight abstraction over a BSP file, providing direct access to many of its lumps without any additional allocations.
+   *
+   * @note Does not take ownership of the passed data. It is your responsibility to ensure the lifetime of the BSP does not exceed that of the underlying data.
+   */
   struct Bsp {
+    /**
+     * Raw physmesh solid and text data for a given model.
+     */
     struct PhysModel {
       /**
        * Index into the model lump this physics model is for
@@ -32,8 +40,14 @@ namespace BspParser {
        */
       int32_t solidCount;
 
+      /**
+       * Raw .PHY solid data. Use `PhyParser::parseSurfaces` from the accompanying PHYParser library to parse this.
+       */
       std::span<const std::byte> collisionData;
 
+      /**
+       * Raw .PHY text section data. Use `PhyParser::parseTextSection` from the accompanying PHYParser library to parse this.
+       */
       std::span<const std::byte> textSectionData;
     };
 
@@ -60,6 +74,11 @@ namespace BspParser {
 
     std::span<const Structs::DispInfo> displacementInfos;
     std::span<const Structs::DispVert> displacementVertices;
+
+    /**
+     * Triangulated and internally smoothed displacement infos for rendering.
+     * @note Use smoothNeighbouringDisplacements to smooth the normals and tangents between connected displacements, which mutates this collection.
+     */
     std::vector<TriangulatedDisplacement> displacements;
 
     std::vector<PhysModel> physicsModels;

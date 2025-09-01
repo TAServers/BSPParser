@@ -12,6 +12,12 @@ namespace BspParser::Accessors {
     { visitor(std::declval<const Structs::StaticPropV7Multiplayer2013&>(), std::declval<const char*>()) };
   };
 
+  /**
+   * Calls the provided visitor for each static prop in the given BSP.
+   * @tparam Iteratee Visitor type declaring an overload for each supported static prop version.
+   * @param bsp BSP instance to iterate.
+   * @param iteratee Instance of Iteratee.
+   */
   template <StaticPropIteratee Iteratee> void iterateStaticProps(const Bsp& bsp, Iteratee iteratee) {
     if (!bsp.staticProps.has_value() || !bsp.staticPropDictionary.has_value()) {
       return;
