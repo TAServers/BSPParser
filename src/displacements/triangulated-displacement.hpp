@@ -9,6 +9,9 @@
 #include <vector>
 
 namespace BspParser {
+  /**
+   * Triangulated displacement info for rendering.
+   */
   class TriangulatedDisplacement {
   public:
     static constexpr uint8_t CORNER_LOWER_LEFT = 0;

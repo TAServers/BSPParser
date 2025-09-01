@@ -3,6 +3,8 @@
 #include "./face-triangulation.hpp"
 
 namespace BspParser::Accessors {
+  using namespace BspParser::Internal::Accessors;
+
   namespace {
     void assertFaceCanBeTriangulated(const std::span<const int32_t> surfaceEdges) {
       if (surfaceEdges.size() < 3) {
@@ -150,7 +152,7 @@ namespace BspParser::Accessors {
     const auto& textureData = bsp.textureDatas[textureInfo.texData];
 
     if (face.dispInfo < 0) {
-      Internal::generateFaceVertices(bsp, plane, textureInfo, textureData, surfaceEdges, iteratee);
+      generateFaceVertices(bsp, plane, textureInfo, textureData, surfaceEdges, iteratee);
     } else {
       const auto& displacement = bsp.displacements[face.dispInfo];
 
@@ -169,7 +171,7 @@ namespace BspParser::Accessors {
     assertFaceCanBeTriangulated(surfaceEdges);
 
     if (face.dispInfo < 0) {
-      Internal::generateFaceTriangleListIndices(surfaceEdges, iteratee);
+      generateFaceTriangleListIndices(surfaceEdges, iteratee);
     } else {
       const auto& displacement = bsp.displacements[face.dispInfo];
 

@@ -4,9 +4,7 @@
 #include "../helpers/get-vertex-position.hpp"
 #include "../helpers/vector-maths.hpp"
 
-namespace BspParser::Accessors::Internal {
-  using namespace BspParser::Internal;
-
+namespace BspParser::Internal::Accessors {
   void generateFaceVertices(
     const Bsp& bsp,
     const Structs::Plane& plane,

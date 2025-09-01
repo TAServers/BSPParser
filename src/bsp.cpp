@@ -3,6 +3,8 @@
 #include "structs/physics.hpp"
 
 namespace BspParser {
+  using namespace BspParser::Internal;
+
   Bsp::Bsp(const std::span<std::byte const> data) : data(data) {
     if (data.size_bytes() < sizeof(Structs::Header)) {
       throw Errors::OutOfBoundsAccess(
@@ -89,7 +91,7 @@ namespace BspParser {
   }
 
   void Bsp::smoothNeighbouringDisplacements() {
-    Internal::blendNeighbouringDisplacementNormals(displacements);
+    blendNeighbouringDisplacementNormals(displacements);
   }
 
   std::span<const Structs::GameLump> Bsp::parseGameLumpHeaders() const {

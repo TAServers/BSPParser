@@ -4,7 +4,7 @@
 #include <memory>
 #include <span>
 
-namespace BspParser {
+namespace BspParser::Internal {
   class OffsetDataView {
   public:
     template <typename T> using ValueOffsetPair = std::pair<T, size_t>;

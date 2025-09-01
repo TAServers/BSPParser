@@ -4,7 +4,7 @@
 #include "../vertex.hpp"
 #include <functional>
 
-namespace BspParser::Accessors::Internal {
+namespace BspParser::Internal::Accessors {
   void generateFaceVertices(
     const Bsp& bsp,
     const Structs::Plane& plane,

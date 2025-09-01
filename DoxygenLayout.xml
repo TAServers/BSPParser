@@ -5,7 +5,8 @@
   <navindex>
     <tab type="mainpage" visible="yes" title=""/>
     <tab type="pages" visible="no" title="" intro=""/>
-    <tab type="user" url="@ref BspParser::Bsp" title="BSP Parser"/>
+    <tab type="user" url="@ref BspParser::Bsp" title="Parser"/>
+    <tab type="user" url="@ref BspParser::Accessors" title="Accessors"/>
     <tab type="classes" visible="yes" title="">
       <tab type="classlist" visible="yes" title="" intro=""/>
       <!-- <tab type="classindex" visible="$ALPHABETICAL_INDEX" title=""/> -->

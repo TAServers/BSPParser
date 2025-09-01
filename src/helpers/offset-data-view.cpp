@@ -1,6 +1,6 @@
 #include "offset-data-view.hpp"
 
-namespace BspParser {
+namespace BspParser::Internal {
   OffsetDataView::OffsetDataView(const std::span<const std::byte> data) : data(data), offset(0) {}
 
   OffsetDataView::OffsetDataView(const OffsetDataView& from, const size_t newOffset) :

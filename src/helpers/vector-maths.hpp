@@ -3,7 +3,7 @@
 #include "../structs/common.hpp"
 #include <cmath>
 
-namespace BspParser {
+namespace BspParser::Internal {
   inline Structs::Vector xyz(const Structs::Vector4& v) {
     return {.x = v.x, .y = v.y, .z = v.z};
   }

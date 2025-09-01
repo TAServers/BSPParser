@@ -163,7 +163,7 @@ namespace BspParser {
         );
       }
 
-      const auto dictionaryData = OffsetDataView(std::span(&data[lumpHeader.offset], lumpHeader.length));
+      const auto dictionaryData = Internal::OffsetDataView(std::span(&data[lumpHeader.offset], lumpHeader.length));
       const auto numDictionaryEntries = dictionaryData.parseStruct<int32_t>(
         0, "Static prop game lump length is shorter than a single int32 for the dictionary count"
       );
